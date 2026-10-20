@@ -1,0 +1,65 @@
+logs
+target
+/.bsp
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+/RUNNING_PID
+/null
+/htmlReport
+# ���ɲ������߱��ݣ�apply_manifest дǰ���ݣ���֤ͨ��������
+.gen-backup/
+
+# 运行日志(本地启动产物)
+app.log
+app.err.log
+
+# 中间件数据目录（docker bind mount，不入库）
+.runtime/
+app.log
+
+# 中间件数据目录（docker bind mount，不入库）
+.runtime/
+
+# ������־����
+compile_result.txt
+sbt_c.log
+sbt_compile.log
+test_result.txt
+
+.agent-fingerprints.json
+.agent-fingerprints/
+
+e.printStackTrace)
+
+# .bak-* 留档不入库（gen_pipeline S2-48 批5 同款纪律）
+*.bak-*
+.rounds/agg_req.txt
+.rounds/dbg.txt
+
+# 运行时日志（9000 会话产物·2026-09-06）
+.logs/
+server-log*
+stage-rebuild*.log
+backups/
+
+# 9000/9001 冒烟划痕与重启前日志轮转（S2-65 批F 起本地运行产物）
+.smoke-*/
+app.log.pre-*
+app.err.log.pre-*
+
+# S2-82: 会话运行日志/测试输出草稿（9000 在跑时文件被句柄占用，走 ignore 不走移动）
+run_9000_*.log
+run_s*.log
+stage_s*.log
+test_result_*.txt
+out_*.sql
+
+# 机器本地 compose 覆盖（新机 initdb 重定向等·不入库）
+docker-compose.override.yml
+
+# B3 会话服务日志
+sbt_run*.log
+.DS_Store
