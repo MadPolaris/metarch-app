@@ -61,11 +61,16 @@ libraryDependencies += clusterSharding
 //     serialization.PrimitiveConverter.
 //   auth-core: net.imadz.common.auth.ApiError / Endpoint (generated API
 //     controllers) - these classes ship in the auth-core jar, not in common-core.
-// monarch-core / saga-core / monarch-persistence are NOT referenced by generated
-// code (zero net.imadz.monarch.* or net.imadz.infra.saga.* occurrences in
-// gen-out-phase2) and are intentionally not added (minimal dependencies).
+// monarch-core / monarch-persistence are NOT referenced by generated
+// code (zero net.imadz.monarch.* occurrences in gen-out-phase2) and are
+// intentionally not added (minimal dependencies).
 libraryDependencies += "net.imadz" %% "common-core" % "0.2"
 libraryDependencies += "net.imadz" %% "auth-core" % "0.2"
+// saga-core: saga framework ships as a jar (DSL/v3 model) per the saga DSL
+// adaptation (2026-10-20) - the golden saga framework sources and the old
+// participant serializer registry are removed; generated code does not wire
+// saga yet, participants are never journaled in v3.
+libraryDependencies += "net.imadz" %% "saga-core" % "0.2"
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,
