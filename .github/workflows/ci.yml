@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   compile:
-    runs-on: [self-hosted, macOS]
+    runs-on: self-hosted
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
