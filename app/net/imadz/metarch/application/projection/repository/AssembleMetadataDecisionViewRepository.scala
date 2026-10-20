@@ -29,7 +29,7 @@ object AssembleMetadataDecisionViewTable {
  * @param exportedAt 导出时间  @knowledge b3ffb67b-f4fe-4f5a-86a1-2096e276edb6@ae58e024e10baffd
  * @param exportedBy 导出人  @knowledge ec530fb6-039e-430b-b46e-403941310668@1be61dc639251f1a
  * @param involvedSessionIds 冲突来源  @knowledge 918e9c1f-bbeb-41e5-9909-eae7daa0da37@4e7e216d1ff8c840
- * @param knowledgePackages 知识包  @knowledge a57b3b50-7477-4c3d-9085-9e23b56e543e@7323243a74a77206
+ * @param knowledgePackages 知识包 [opaque: 裁决保留的原文载荷·不展开]  @knowledge a57b3b50-7477-4c3d-9085-9e23b56e543e@7323243a74a77206
  * @param patchSessionIds 补丁来源  @knowledge 9d460d93-b680-47dd-8c48-bda6cb062061@7bcbcff3a0859156
  * @param projectId 所属专项  @knowledge 12d0e97d-3eca-42e6-80fe-1cc42962dd53@50ff9baf971e14ec
  * @param releasedAt 发布时间  @knowledge 11c60402-be28-449d-a691-3395c0454087@dd5cd89ee3914f7a
@@ -42,9 +42,12 @@ object AssembleMetadataDecisionViewTable {
  * @param tenantId 所属组织  @knowledge 875a1384-5e92-4250-a62e-6ded1bff473f@c132eba043d5462a
  * @param version 版本号  @knowledge 2a1ef306-dd55-4037-9583-4c677e97ebdb@b6cad3f4328cced0
  */
-case class AssembleMetadataDecisionView(appliedAt: Option[Instant], assembledAt: Option[Instant], assembledBy: String, baseVersion: String, catalogId: String, concepts: List[ConceptDelta], conflictId: String, conflictType: String, conflicts: List[CatalogConflict], details: String, detectedAt: Option[Instant], exportedAt: Option[Instant], exportedBy: String, involvedSessionIds: List[String], knowledgePackages: String, patchSessionIds: List[Id], projectId: String, releasedAt: Option[Instant], releasedBy: String, resolutionAction: String, resolutionNote: String, resolvedAt: Option[Instant], resolvedBy: String, sessionId: String, tenantId: String, version: String) {
+case class AssembleMetadataDecisionView(appliedAt: Option[Instant], assembledAt: Option[Instant], assembledBy: String, baseVersion: String, catalogId: String, concepts: List[ConceptDelta], conflictId: String, conflictType: String, conflicts: List[CatalogConflict], details: ConflictDetails, detectedAt: Option[Instant], exportedAt: Option[Instant], exportedBy: String, involvedSessionIds: List[String], knowledgePackages: String, patchSessionIds: List[Id], projectId: String, releasedAt: Option[Instant], releasedBy: String, resolutionAction: String, resolutionNote: String, resolvedAt: Option[Instant], resolvedBy: String, sessionId: String, tenantId: String, version: String) {
 
 }
+
+/** ConflictDetails — AssembleMetadataDecisionView.details 的展开子文档（info.structure·结构出处见树） */
+case class ConflictDetails(conceptName: String, contextId: String, existingConceptId: String, incomingConceptId: String, reason: String)
 }
 
 /**

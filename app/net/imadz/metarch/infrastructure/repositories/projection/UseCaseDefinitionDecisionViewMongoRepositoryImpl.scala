@@ -6,16 +6,20 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.UseCaseDefinitionDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.UseCaseDefinitionDecisionViewTable._
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsNull
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonArray
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scalikejdbc._
 
 /**
@@ -26,7 +30,7 @@ class UseCaseDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mon
 
   override def upsert(view: UseCaseDefinitionDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_use_case_definitions", "definitionId", view.definitionId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_use_case_definitions", "definitionId", view.definitionId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -35,7 +39,7 @@ class UseCaseDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mon
    */
   override def findByIdentity(definitionId: String): Future[Option[UseCaseDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_use_case_definitions", definitionId, definitionId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_use_case_definitions", definitionId, definitionId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -44,13 +48,13 @@ class UseCaseDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mon
    */
   override def findByTenantId(tenantId: String): Future[List[UseCaseDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_use_case_definitions", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_use_case_definitions", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[UseCaseDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_use_case_definitions").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_use_case_definitions").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -59,7 +63,7 @@ class UseCaseDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mon
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[UseCaseDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_use_case_definitions", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_use_case_definitions", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -68,56 +72,56 @@ class UseCaseDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mon
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_use_case_definitions").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_use_case_definitions", tenantId)
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: UseCaseDefinitionDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "actors" -> Json.toJson(view.actors),
-      "declaredAt" -> view.declaredAt.map(x => JsString(x.toString)),
-      "declaredBy" -> Json.toJson(view.declaredBy),
-      "definitionId" -> (if (view.definitionId == null) JsNull else Json.toJson(view.definitionId)),
-      "extensionsJson" -> Json.toJson(view.extensionsJson),
-      "generatedIds" -> Json.toJson(view.generatedIds),
-      "mainFlowJson" -> Json.toJson(view.mainFlowJson),
-      "optionalInputs" -> Json.toJson(view.optionalInputs),
-      "orchestrationType" -> Json.toJson(view.orchestrationType),
-      "postconditions" -> Json.toJson(view.postconditions),
-      "preconditions" -> Json.toJson(view.preconditions),
-      "realizes" -> Json.toJson(view.realizes),
-      "removedAt" -> view.removedAt.map(x => JsString(x.toString)),
-      "removedBy" -> Json.toJson(view.removedBy),
-      "tenantId" -> Json.toJson(view.tenantId),
-      "trigger" -> Json.toJson(view.trigger),
-      "useCaseName" -> Json.toJson(view.useCaseName)))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: UseCaseDefinitionDecisionView): Document =
+    Document(
+      "actors" -> BsonArray(view.actors.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "declaredAt" -> (view.declaredAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "declaredBy" -> bsonStr(view.declaredBy),
+      "definitionId" -> ((if (view.definitionId == null) BsonNull() else BsonString(view.definitionId.toString)): org.mongodb.scala.bson.BsonValue),
+      "extensionsJson" -> bsonStr(view.extensionsJson),
+      "generatedIds" -> BsonArray(view.generatedIds.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "mainFlowJson" -> bsonStr(view.mainFlowJson),
+      "optionalInputs" -> BsonArray(view.optionalInputs.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "orchestrationType" -> bsonStr(view.orchestrationType),
+      "postconditions" -> BsonArray(view.postconditions.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "preconditions" -> BsonArray(view.preconditions.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "realizes" -> BsonArray(view.realizes.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "removedAt" -> (view.removedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "removedBy" -> bsonStr(view.removedBy),
+      "tenantId" -> bsonStr(view.tenantId),
+      "trigger" -> bsonStr(view.trigger),
+      "useCaseName" -> bsonStr(view.useCaseName))
 
-  /** JSON 串 → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
-    * guards 型全表 500 事故的 Mongo 路免疫面；对照 store 侧 docsToJsons 只挡 toJson 失败，本层挡字段级 decode 失败） */
-  private def safeRowToView(json: String): Option[UseCaseDefinitionDecisionView] =
-    scala.util.Try(rowToView(json)).toOption
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
-  private def rowToView(json: String): UseCaseDefinitionDecisionView = {
-    val v = play.api.libs.json.Json.parse(json)
-    UseCaseDefinitionDecisionView(
-      actors = (v \ "actors").asOpt[List[String]].getOrElse(Nil),
-      declaredAt = (v \ "declaredAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "declaredAt").asOpt[String].map(java.time.Instant.parse)),
-      declaredBy = (v \ "declaredBy").as[String],
-      definitionId = (v \ "definitionId").asOpt[Id].getOrElse(null),
-      extensionsJson = (v \ "extensionsJson").as[String],
-      generatedIds = (v \ "generatedIds").asOpt[List[String]].getOrElse(Nil),
-      mainFlowJson = (v \ "mainFlowJson").as[String],
-      optionalInputs = (v \ "optionalInputs").asOpt[List[String]].getOrElse(Nil),
-      orchestrationType = (v \ "orchestrationType").as[String],
-      postconditions = (v \ "postconditions").asOpt[List[String]].getOrElse(Nil),
-      preconditions = (v \ "preconditions").asOpt[List[String]].getOrElse(Nil),
-      realizes = (v \ "realizes").asOpt[List[String]].getOrElse(Nil),
-      removedAt = (v \ "removedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "removedAt").asOpt[String].map(java.time.Instant.parse)),
-      removedBy = (v \ "removedBy").as[String],
-      tenantId = (v \ "tenantId").as[String],
-      trigger = (v \ "trigger").as[String],
-      useCaseName = (v \ "useCaseName").as[String])
-  }
+  /** Document → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
+    * guards 型全表 500 事故的 Mongo 路免疫面；本层挡字段级 decode 失败） */
+  private def safeRowToView(doc: Document): Option[UseCaseDefinitionDecisionView] =
+    scala.util.Try(rowFromDocument(doc)).toOption
+
+  private def rowFromDocument(doc: Document): UseCaseDefinitionDecisionView = UseCaseDefinitionDecisionView(
+      actors = doc.get("actors") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      declaredAt = doc.get("declaredAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      declaredBy = doc("declaredBy").asString().getValue,
+      definitionId = doc.get("definitionId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      extensionsJson = doc("extensionsJson").asString().getValue,
+      generatedIds = doc.get("generatedIds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      mainFlowJson = doc("mainFlowJson").asString().getValue,
+      optionalInputs = doc.get("optionalInputs") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      orchestrationType = doc("orchestrationType").asString().getValue,
+      postconditions = doc.get("postconditions") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      preconditions = doc.get("preconditions") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      realizes = doc.get("realizes") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      removedAt = doc.get("removedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      removedBy = doc("removedBy").asString().getValue,
+      tenantId = doc("tenantId").asString().getValue,
+      trigger = doc("trigger").asString().getValue,
+      useCaseName = doc("useCaseName").asString().getValue)
 
 }

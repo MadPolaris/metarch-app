@@ -55,5 +55,23 @@ trait OnboardTenantDecisionViewRepository {
   def findAll(): Future[List[OnboardTenantDecisionView]]
   // Logic: 查全部 OnboardTenantDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 6388c553-281f-4849-8de4-b1b8ffbaafe4@cd06d03c174b5143
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[OnboardTenantDecisionView]]
+  // Logic: 按 tenantId 分页查 OnboardTenantDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 6388c553-281f-4849-8de4-b1b8ffbaafe4@cd06d03c174b5143
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 OnboardTenantDecisionView（分页 total）
+
+  /**
+   * @param orgMemberId  @knowledge 6bcd8021-411b-4df1-a6d0-a797691184fb@436f0e9153aacff1
+   */
+  def findByOrgMemberId(orgMemberId: String): Future[List[OnboardTenantDecisionView]]
+  // Logic: 按 orgMemberIds 元素查 OnboardTenantDecisionView 列表（子表元素索引）
+
 }
 

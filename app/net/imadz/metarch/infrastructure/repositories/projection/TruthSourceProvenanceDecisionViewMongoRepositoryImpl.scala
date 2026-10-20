@@ -6,12 +6,14 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.TruthSourceProvenanceDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.TruthSourceProvenanceDecisionViewTable._
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsNull
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -25,7 +27,7 @@ class TruthSourceProvenanceDecisionViewMongoRepositoryImpl @Inject() (viewStore:
 
   override def upsert(view: TruthSourceProvenanceDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_truth_source_provenances", "provenanceId", view.provenanceId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_truth_source_provenances", "provenanceId", view.provenanceId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -34,7 +36,7 @@ class TruthSourceProvenanceDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByIdentity(provenanceId: String): Future[Option[TruthSourceProvenanceDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_truth_source_provenances", provenanceId, provenanceId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_truth_source_provenances", provenanceId, provenanceId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -43,13 +45,13 @@ class TruthSourceProvenanceDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByTenantId(tenantId: String): Future[List[TruthSourceProvenanceDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_truth_source_provenances", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_truth_source_provenances", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[TruthSourceProvenanceDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_truth_source_provenances").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_truth_source_provenances").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -58,7 +60,7 @@ class TruthSourceProvenanceDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[TruthSourceProvenanceDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_truth_source_provenances", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_truth_source_provenances", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -67,34 +69,34 @@ class TruthSourceProvenanceDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_truth_source_provenances").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_truth_source_provenances", tenantId)
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: TruthSourceProvenanceDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "payloadJson" -> Json.toJson(view.payloadJson),
-      "provenanceId" -> (if (view.provenanceId == null) JsNull else Json.toJson(view.provenanceId)),
-      "recordedAt" -> view.recordedAt.map(x => JsString(x.toString)),
-      "recordedBy" -> Json.toJson(view.recordedBy),
-      "sourceKey" -> Json.toJson(view.sourceKey),
-      "tenantId" -> Json.toJson(view.tenantId)))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: TruthSourceProvenanceDecisionView): Document =
+    Document(
+      "payloadJson" -> bsonStr(view.payloadJson),
+      "provenanceId" -> ((if (view.provenanceId == null) BsonNull() else BsonString(view.provenanceId.toString)): org.mongodb.scala.bson.BsonValue),
+      "recordedAt" -> (view.recordedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "recordedBy" -> bsonStr(view.recordedBy),
+      "sourceKey" -> bsonStr(view.sourceKey),
+      "tenantId" -> bsonStr(view.tenantId))
 
-  /** JSON 串 → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
-    * guards 型全表 500 事故的 Mongo 路免疫面；对照 store 侧 docsToJsons 只挡 toJson 失败，本层挡字段级 decode 失败） */
-  private def safeRowToView(json: String): Option[TruthSourceProvenanceDecisionView] =
-    scala.util.Try(rowToView(json)).toOption
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
-  private def rowToView(json: String): TruthSourceProvenanceDecisionView = {
-    val v = play.api.libs.json.Json.parse(json)
-    TruthSourceProvenanceDecisionView(
-      payloadJson = (v \ "payloadJson").as[String],
-      provenanceId = (v \ "provenanceId").asOpt[Id].getOrElse(null),
-      recordedAt = (v \ "recordedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "recordedAt").asOpt[String].map(java.time.Instant.parse)),
-      recordedBy = (v \ "recordedBy").as[String],
-      sourceKey = (v \ "sourceKey").as[String],
-      tenantId = (v \ "tenantId").as[String])
-  }
+  /** Document → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
+    * guards 型全表 500 事故的 Mongo 路免疫面；本层挡字段级 decode 失败） */
+  private def safeRowToView(doc: Document): Option[TruthSourceProvenanceDecisionView] =
+    scala.util.Try(rowFromDocument(doc)).toOption
+
+  private def rowFromDocument(doc: Document): TruthSourceProvenanceDecisionView = TruthSourceProvenanceDecisionView(
+      payloadJson = doc("payloadJson").asString().getValue,
+      provenanceId = doc.get("provenanceId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      recordedAt = doc.get("recordedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      recordedBy = doc("recordedBy").asString().getValue,
+      sourceKey = doc("sourceKey").asString().getValue,
+      tenantId = doc("tenantId").asString().getValue)
 
 }

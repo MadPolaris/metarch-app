@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  日志可见性恢复（2026-08-25，BUG：现役实例 stdout/stderr 重定向 0 字节）：
+  - 此前仓库无 conf/logback.xml ⇒ 用 play-logback 内置默认配置，仅 STDOUT appender；
+    而 sbt -client / server 模式下 run 在 server JVM 执行，其 stdout 不进拉起会话的重定向文件。
+  - 显式加 FileAppender 到 ${application.home}/logs/application.log（dev/prod 均解析为项目目录），
+    使应用日志落盘可查；STDOUT 保留以便前台直跑时观察。
+-->
+<configuration>
+
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>${application.home}/logs/application.log</file>
+    <append>true</append>
+    <encoder>
+      <pattern>%date{"yyyy-MM-dd HH:mm:ss.SSS"} %-5level [%thread] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%date{"yyyy-MM-dd HH:mm:ss.SSS"} %-5level [%thread] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="ASYNCFILE" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="FILE" />
+  </appender>
+
+  <appender name="ASYNCSTDOUT" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="STDOUT" />
+  </appender>
+
+  <logger name="play" level="INFO" />
+  <logger name="application" level="DEBUG" />
+
+  <root level="INFO">
+    <appender-ref ref="ASYNCSTDOUT" />
+    <appender-ref ref="ASYNCFILE" />
+  </root>
+
+</configuration>

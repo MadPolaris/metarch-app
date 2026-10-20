@@ -152,4 +152,51 @@ class InviteTenantMemberDecisionViewRepositoryImpl extends InviteTenantMemberDec
     // ==== END MANUAL ====
   }
 
+  /**
+   * @param tenantId  @knowledge 310aa63d-49ff-4ffc-8204-8c84ac2d352c@eea21de3d0088de7
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[InviteTenantMemberDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `department`, `displayName`, `email`, `jobTitle`, `joinedAt`, `phoneNumber`, `removedAt`, `status`, `tenantId`, `userId`
+                  FROM invitetenantmemberdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `tenantId`, `userId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => InviteTenantMemberDecisionView(
+                department = rs.string("department"),
+                displayName = rs.string("displayName"),
+                email = rs.string("email"),
+                jobTitle = rs.string("jobTitle"),
+                joinedAt = rs.longOpt("joinedAt").map(java.time.Instant.ofEpochMilli),
+                phoneNumber = rs.string("phoneNumber"),
+                removedAt = rs.longOpt("removedAt").map(java.time.Instant.ofEpochMilli),
+                status = rs.string("status"),
+                tenantId = rs.string("tenantId"),
+                userId = rs.string("userId")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 310aa63d-49ff-4ffc-8204-8c84ac2d352c@eea21de3d0088de7
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM invitetenantmemberdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

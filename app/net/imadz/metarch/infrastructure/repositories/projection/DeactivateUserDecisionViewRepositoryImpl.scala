@@ -81,4 +81,41 @@ class DeactivateUserDecisionViewRepositoryImpl extends DeactivateUserDecisionVie
     // ==== END MANUAL ====
   }
 
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[DeactivateUserDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `authMethod`, `displayName`, `email`, `phoneNumber`, `registeredAt`, `userId`
+                  FROM deactivateuserdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `userId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => DeactivateUserDecisionView(
+                authMethod = rs.string("authMethod"),
+                displayName = rs.string("displayName"),
+                email = rs.string("email"),
+                phoneNumber = rs.string("phoneNumber"),
+                registeredAt = rs.longOpt("registeredAt").map(java.time.Instant.ofEpochMilli),
+                userId = rs.string("userId")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM deactivateuserdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

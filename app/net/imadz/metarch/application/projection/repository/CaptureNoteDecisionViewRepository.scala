@@ -114,5 +114,23 @@ trait CaptureNoteDecisionViewRepository {
   def findAll(): Future[List[CaptureNoteDecisionView]]
   // Logic: 查全部 CaptureNoteDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 3ac63981-d1ae-42f7-b6be-f520da01e1e0@7857c48ca920b3c9
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[CaptureNoteDecisionView]]
+  // Logic: 按 tenantId 分页查 CaptureNoteDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 3ac63981-d1ae-42f7-b6be-f520da01e1e0@7857c48ca920b3c9
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 CaptureNoteDecisionView（分页 total）
+
+  /**
+   * @param linkedNoteId  @knowledge 7ba2e18c-d2e6-4fc3-8b80-e1fce9cd0d84@53b4a5ecd8b6709d
+   */
+  def findByLinkedNoteId(linkedNoteId: String): Future[List[CaptureNoteDecisionView]]
+  // Logic: 按 linkedNoteIds 元素查 CaptureNoteDecisionView 列表（子表元素索引）
+
 }
 

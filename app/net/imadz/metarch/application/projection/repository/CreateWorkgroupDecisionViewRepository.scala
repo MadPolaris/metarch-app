@@ -62,5 +62,29 @@ trait CreateWorkgroupDecisionViewRepository {
   def findAll(): Future[List[CreateWorkgroupDecisionView]]
   // Logic: 查全部 CreateWorkgroupDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge b4429bfe-24ab-49eb-ab45-d22952747b79@ed7e562b0aff40df
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[CreateWorkgroupDecisionView]]
+  // Logic: 按 tenantId 分页查 CreateWorkgroupDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge b4429bfe-24ab-49eb-ab45-d22952747b79@ed7e562b0aff40df
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 CreateWorkgroupDecisionView（分页 total）
+
+  /**
+   * @param invitedUserId  @knowledge c70358f2-f261-4120-892b-783bfa503a6a@e28610ad0d1a7467
+   */
+  def findByInvitedUserId(invitedUserId: String): Future[List[CreateWorkgroupDecisionView]]
+  // Logic: 按 invitedUserIds 元素查 CreateWorkgroupDecisionView 列表（子表元素索引）
+
+  /**
+   * @param memberUserId  @knowledge c57170f4-2952-4d9d-818d-99d4d768957f@3c974209e8288a34
+   */
+  def findByMemberUserId(memberUserId: String): Future[List[CreateWorkgroupDecisionView]]
+  // Logic: 按 memberUserIds 元素查 CreateWorkgroupDecisionView 列表（子表元素索引）
+
 }
 

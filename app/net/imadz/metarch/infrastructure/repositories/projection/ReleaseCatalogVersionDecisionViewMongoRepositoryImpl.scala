@@ -6,17 +6,29 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.ReleaseCatalogVersionDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.ReleaseCatalogVersionDecisionViewTable._
 import net.imadz.metarch.domain.values.CatalogConflict
+import net.imadz.metarch.domain.values.CodeAnchorDelta
 import net.imadz.metarch.domain.values.ConceptDelta
+import net.imadz.metarch.domain.values.EdgeTarget
+import net.imadz.metarch.domain.values.FieldEdge
+import net.imadz.metarch.domain.values.FieldSpec
+import net.imadz.metarch.domain.values.GuardSpec
+import net.imadz.metarch.domain.values.RuleRef
+import net.imadz.metarch.domain.values.UcStep
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonArray
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scalikejdbc._
 
 /**
@@ -27,7 +39,7 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
 
   override def upsert(view: ReleaseCatalogVersionDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_model_catalog", "_id", "release-catalog-version:" + view.catalogId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_model_catalog", "_id", "release-catalog-version:" + view.catalogId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -36,7 +48,7 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByIdentity(catalogId: String): Future[Option[ReleaseCatalogVersionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_model_catalog", "_id", "release-catalog-version:" + catalogId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_model_catalog", "_id", "release-catalog-version:" + catalogId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -45,7 +57,7 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByConflictId(conflictId: String): Future[List[ReleaseCatalogVersionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_model_catalog", Map("kind" -> "release-catalog-version", "conflictId" -> conflictId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_model_catalog", Map("kind" -> "release-catalog-version", "conflictId" -> conflictId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -54,7 +66,7 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByProjectId(projectId: String): Future[List[ReleaseCatalogVersionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_model_catalog", Map("kind" -> "release-catalog-version", "projectId" -> projectId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_model_catalog", Map("kind" -> "release-catalog-version", "projectId" -> projectId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -63,7 +75,7 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findBySessionId(sessionId: String): Future[List[ReleaseCatalogVersionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_model_catalog", Map("kind" -> "release-catalog-version", "sessionId" -> sessionId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_model_catalog", Map("kind" -> "release-catalog-version", "sessionId" -> sessionId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -72,13 +84,13 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByTenantId(tenantId: String): Future[List[ReleaseCatalogVersionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_model_catalog", Map("kind" -> "release-catalog-version", "tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_model_catalog", Map("kind" -> "release-catalog-version", "tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[ReleaseCatalogVersionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_model_catalog").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_model_catalog").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -87,7 +99,7 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ReleaseCatalogVersionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_model_catalog", tenantId, limit, offset, Map("kind" -> "release-catalog-version")).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_model_catalog", tenantId, limit, offset, Map("kind" -> "release-catalog-version")).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -96,76 +108,268 @@ class ReleaseCatalogVersionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_model_catalog").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_model_catalog", tenantId, Map("kind" -> "release-catalog-version"))
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: ReleaseCatalogVersionDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "appliedAt" -> view.appliedAt.map(x => JsString(x.toString)),
-      "assembledAt" -> view.assembledAt.map(x => JsString(x.toString)),
-      "assembledBy" -> Json.toJson(view.assembledBy),
-      "baseVersion" -> Json.toJson(view.baseVersion),
-      "catalogId" -> Json.toJson(view.catalogId),
-      "concepts" -> Json.toJson(view.concepts),
-      "conflictId" -> Json.toJson(view.conflictId),
-      "conflictType" -> Json.toJson(view.conflictType),
-      "conflicts" -> Json.toJson(view.conflicts),
-      "details" -> Json.toJson(view.details),
-      "detectedAt" -> view.detectedAt.map(x => JsString(x.toString)),
-      "exportedAt" -> view.exportedAt.map(x => JsString(x.toString)),
-      "exportedBy" -> Json.toJson(view.exportedBy),
-      "involvedSessionIds" -> Json.toJson(view.involvedSessionIds),
-      "knowledgePackages" -> Json.toJson(view.knowledgePackages),
-      "patchSessionIds" -> Json.toJson(view.patchSessionIds),
-      "projectId" -> Json.toJson(view.projectId),
-      "releasedAt" -> view.releasedAt.map(x => JsString(x.toString)),
-      "releasedBy" -> Json.toJson(view.releasedBy),
-      "resolutionAction" -> Json.toJson(view.resolutionAction),
-      "resolutionNote" -> Json.toJson(view.resolutionNote),
-      "resolvedAt" -> view.resolvedAt.map(x => JsString(x.toString)),
-      "resolvedBy" -> Json.toJson(view.resolvedBy),
-      "sessionId" -> Json.toJson(view.sessionId),
-      "tenantId" -> Json.toJson(view.tenantId),
-      "version" -> Json.toJson(view.version),
-      "kind" -> JsString("release-catalog-version")))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: ReleaseCatalogVersionDecisionView): Document =
+    Document(
+      "appliedAt" -> (view.appliedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "assembledAt" -> (view.assembledAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "assembledBy" -> bsonStr(view.assembledBy),
+      "baseVersion" -> bsonStr(view.baseVersion),
+      "catalogId" -> bsonStr(view.catalogId),
+      "concepts" -> BsonArray(view.concepts.map(elem => (conceptDeltaToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "conflictId" -> bsonStr(view.conflictId),
+      "conflictType" -> bsonStr(view.conflictType),
+      "conflicts" -> BsonArray(view.conflicts.map(elem => (catalogConflictToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "details" -> conflictDetailsToDocument(view.details).toBsonDocument,
+      "detectedAt" -> (view.detectedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "exportedAt" -> (view.exportedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "exportedBy" -> bsonStr(view.exportedBy),
+      "involvedSessionIds" -> BsonArray(view.involvedSessionIds.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "knowledgePackages" -> bsonStr(view.knowledgePackages),
+      "patchSessionIds" -> BsonArray(view.patchSessionIds.map(elem => (((if (elem == null) BsonNull() else BsonString(elem.toString)): org.mongodb.scala.bson.BsonValue): org.mongodb.scala.bson.BsonValue))),
+      "projectId" -> bsonStr(view.projectId),
+      "releasedAt" -> (view.releasedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "releasedBy" -> bsonStr(view.releasedBy),
+      "resolutionAction" -> bsonStr(view.resolutionAction),
+      "resolutionNote" -> bsonStr(view.resolutionNote),
+      "resolvedAt" -> (view.resolvedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "resolvedBy" -> bsonStr(view.resolvedBy),
+      "sessionId" -> bsonStr(view.sessionId),
+      "tenantId" -> bsonStr(view.tenantId),
+      "version" -> bsonStr(view.version),
+      "kind" -> BsonString("release-catalog-version"))
+
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
   /** [6合1 kind 判别式] decode 前 kind 门——同 collection 多视图列同形不设防＝静默混族读：
     * kind 不匹配按毒行跳过（与字段级 decode 失败同路径） */
-  private def safeRowToView(json: String): Option[ReleaseCatalogVersionDecisionView] =
-    for {
-      v <- scala.util.Try(play.api.libs.json.Json.parse(json)).toOption
-      k <- (v \\ "kind").headOption.flatMap(_.asOpt[String]) if k == "release-catalog-version"
-      row <- scala.util.Try(rowToView(v)).toOption
-    } yield row
+  private def safeRowToView(doc: Document): Option[ReleaseCatalogVersionDecisionView] =
+    doc.get("kind") match {
+      case Some(v) if v.isString && v.asString().getValue == "release-catalog-version" => scala.util.Try(rowFromDocument(doc)).toOption
+      case _ => None
+    }
 
-  private def rowToView(v: play.api.libs.json.JsValue): ReleaseCatalogVersionDecisionView = ReleaseCatalogVersionDecisionView(
-      appliedAt = (v \ "appliedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "appliedAt").asOpt[String].map(java.time.Instant.parse)),
-      assembledAt = (v \ "assembledAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "assembledAt").asOpt[String].map(java.time.Instant.parse)),
-      assembledBy = (v \ "assembledBy").as[String],
-      baseVersion = (v \ "baseVersion").as[String],
-      catalogId = (v \ "catalogId").as[String],
-      concepts = (v \ "concepts").asOpt[List[ConceptDelta]].getOrElse(Nil),
-      conflictId = (v \ "conflictId").as[String],
-      conflictType = (v \ "conflictType").as[String],
-      conflicts = (v \ "conflicts").asOpt[List[CatalogConflict]].getOrElse(Nil),
-      details = (v \ "details").as[String],
-      detectedAt = (v \ "detectedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "detectedAt").asOpt[String].map(java.time.Instant.parse)),
-      exportedAt = (v \ "exportedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "exportedAt").asOpt[String].map(java.time.Instant.parse)),
-      exportedBy = (v \ "exportedBy").as[String],
-      involvedSessionIds = (v \ "involvedSessionIds").asOpt[List[String]].getOrElse(Nil),
-      knowledgePackages = (v \ "knowledgePackages").as[String],
-      patchSessionIds = (v \ "patchSessionIds").asOpt[List[Id]].getOrElse(Nil),
-      projectId = (v \ "projectId").as[String],
-      releasedAt = (v \ "releasedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "releasedAt").asOpt[String].map(java.time.Instant.parse)),
-      releasedBy = (v \ "releasedBy").as[String],
-      resolutionAction = (v \ "resolutionAction").as[String],
-      resolutionNote = (v \ "resolutionNote").as[String],
-      resolvedAt = (v \ "resolvedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "resolvedAt").asOpt[String].map(java.time.Instant.parse)),
-      resolvedBy = (v \ "resolvedBy").as[String],
-      sessionId = (v \ "sessionId").as[String],
-      tenantId = (v \ "tenantId").as[String],
-      version = (v \ "version").as[String])
+  private def rowFromDocument(doc: Document): ReleaseCatalogVersionDecisionView = ReleaseCatalogVersionDecisionView(
+      appliedAt = doc.get("appliedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      assembledAt = doc.get("assembledAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      assembledBy = doc("assembledBy").asString().getValue,
+      baseVersion = doc("baseVersion").asString().getValue,
+      catalogId = doc("catalogId").asString().getValue,
+      concepts = doc.get("concepts") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => conceptDeltaFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      conflictId = doc("conflictId").asString().getValue,
+      conflictType = doc("conflictType").asString().getValue,
+      conflicts = doc.get("conflicts") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => catalogConflictFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      details = conflictDetailsFromDocument(Document(doc("details").asDocument())),
+      detectedAt = doc.get("detectedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      exportedAt = doc.get("exportedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      exportedBy = doc("exportedBy").asString().getValue,
+      involvedSessionIds = doc.get("involvedSessionIds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      knowledgePackages = doc("knowledgePackages").asString().getValue,
+      patchSessionIds = doc.get("patchSessionIds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => Id.of(elem.asString().getValue)).toList; case _ => Nil },
+      projectId = doc("projectId").asString().getValue,
+      releasedAt = doc.get("releasedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      releasedBy = doc("releasedBy").asString().getValue,
+      resolutionAction = doc("resolutionAction").asString().getValue,
+      resolutionNote = doc("resolutionNote").asString().getValue,
+      resolvedAt = doc.get("resolvedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      resolvedBy = doc("resolvedBy").asString().getValue,
+      sessionId = doc("sessionId").asString().getValue,
+      tenantId = doc("tenantId").asString().getValue,
+      version = doc("version").asString().getValue)
+
+  private def conceptDeltaToDocument(v: ConceptDelta): Document =
+    Document(
+      "action" -> bsonStr(v.action),
+      "conceptName" -> bsonStr(v.conceptName),
+      "contextId" -> bsonStr(v.contextId),
+      "noteIds" -> BsonArray(v.noteIds.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "definition" -> bsonStr(v.definition),
+      "conceptId" -> ((if (v.conceptId == null) BsonNull() else BsonString(v.conceptId.toString)): org.mongodb.scala.bson.BsonValue),
+      "contentHash" -> bsonStr(v.contentHash),
+      "kind" -> bsonStr(v.kind),
+      "sourceStage" -> bsonStr(v.sourceStage),
+      "sourceSessionId" -> ((if (v.sourceSessionId == null) BsonNull() else BsonString(v.sourceSessionId.toString)): org.mongodb.scala.bson.BsonValue),
+      "noteId" -> ((if (v.noteId == null) BsonNull() else BsonString(v.noteId.toString)): org.mongodb.scala.bson.BsonValue),
+      "anchors" -> BsonArray(v.anchors.map(elem => (codeAnchorDeltaToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "guards" -> BsonArray(v.guards.map(elem => (guardSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "aggregateRuleRefs" -> BsonArray(v.aggregateRuleRefs.map(elem => (ruleRefToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "preconditionRefs" -> BsonArray(v.preconditionRefs.map(elem => (ruleRefToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "postconditionRefs" -> BsonArray(v.postconditionRefs.map(elem => (ruleRefToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "fields" -> BsonArray(v.fields.map(elem => (fieldSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "emits" -> BsonArray(v.emits.map(elem => (edgeTargetToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "folds" -> BsonArray(v.folds.map(elem => (fieldEdgeToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "emissions" -> BsonArray(v.emissions.map(elem => (fieldEdgeToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "steps" -> BsonArray(v.steps.map(elem => (ucStepToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "extensions" -> BsonArray(v.extensions.map(elem => (ucStepToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "ucWrites" -> BsonArray(v.ucWrites.map(elem => (edgeTargetToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "ucPublishes" -> BsonArray(v.ucPublishes.map(elem => (edgeTargetToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))))
+
+  private def conceptDeltaFromDocument(doc: Document): ConceptDelta = ConceptDelta(
+      action = doc("action").asString().getValue,
+      conceptName = doc("conceptName").asString().getValue,
+      contextId = doc("contextId").asString().getValue,
+      noteIds = doc.get("noteIds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      definition = doc("definition").asString().getValue,
+      conceptId = doc.get("conceptId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      contentHash = doc("contentHash").asString().getValue,
+      kind = doc("kind").asString().getValue,
+      sourceStage = doc("sourceStage").asString().getValue,
+      sourceSessionId = doc.get("sourceSessionId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      anchors = doc.get("anchors") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => codeAnchorDeltaFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      guards = doc.get("guards") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => guardSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      aggregateRuleRefs = doc.get("aggregateRuleRefs") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ruleRefFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      preconditionRefs = doc.get("preconditionRefs") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ruleRefFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      postconditionRefs = doc.get("postconditionRefs") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ruleRefFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      fields = doc.get("fields") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      emits = doc.get("emits") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => edgeTargetFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      folds = doc.get("folds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldEdgeFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      emissions = doc.get("emissions") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldEdgeFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      steps = doc.get("steps") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ucStepFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      extensions = doc.get("extensions") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ucStepFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      ucWrites = doc.get("ucWrites") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => edgeTargetFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      ucPublishes = doc.get("ucPublishes") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => edgeTargetFromDocument(Document(elem.asDocument()))).toList; case _ => Nil })
+
+  private def codeAnchorDeltaToDocument(v: CodeAnchorDelta): Document =
+    Document(
+      "noteId" -> ((if (v.noteId == null) BsonNull() else BsonString(v.noteId.toString)): org.mongodb.scala.bson.BsonValue),
+      "role" -> bsonStr(v.role),
+      "host" -> bsonStr(v.host),
+      "file" -> bsonStr(v.file),
+      "symbols" -> BsonArray(v.symbols.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))))
+
+  private def codeAnchorDeltaFromDocument(doc: Document): CodeAnchorDelta = CodeAnchorDelta(
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      role = doc("role").asString().getValue,
+      host = doc("host").asString().getValue,
+      file = doc("file").asString().getValue,
+      symbols = doc.get("symbols") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil })
+
+  private def guardSpecToDocument(v: GuardSpec): Document =
+    Document(
+      "kind" -> bsonStr(v.kind),
+      "ref" -> bsonStr(v.ref),
+      "errCode" -> bsonStr(v.errCode),
+      "desc" -> bsonStr(v.desc),
+      "cond" -> bsonStr(v.cond),
+      "from" -> bsonStr(v.from),
+      "toStatus" -> bsonStr(v.toStatus),
+      "notStatus" -> BsonArray(v.notStatus.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "note" -> v.note.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()))
+
+  private def guardSpecFromDocument(doc: Document): GuardSpec = GuardSpec(
+      kind = doc("kind").asString().getValue,
+      ref = doc("ref").asString().getValue,
+      errCode = doc("errCode").asString().getValue,
+      desc = doc("desc").asString().getValue,
+      cond = doc("cond").asString().getValue,
+      from = doc("from").asString().getValue,
+      toStatus = doc("toStatus").asString().getValue,
+      notStatus = doc.get("notStatus") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      note = doc.get("note") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None })
+
+  private def ruleRefToDocument(v: RuleRef): Document =
+    Document(
+      "ruleId" -> bsonStr(v.ruleId),
+      "errCode" -> bsonStr(v.errCode),
+      "desc" -> bsonStr(v.desc))
+
+  private def ruleRefFromDocument(doc: Document): RuleRef = RuleRef(
+      ruleId = doc("ruleId").asString().getValue,
+      errCode = doc("errCode").asString().getValue,
+      desc = doc("desc").asString().getValue)
+
+  private def fieldSpecToDocument(v: FieldSpec): Document =
+    Document(
+      "name" -> bsonStr(v.name),
+      "dataType" -> bsonStr(v.dataType),
+      "description" -> bsonStr(v.description),
+      "role" -> bsonStr(v.role),
+      "noteId" -> bsonStr(v.noteId),
+      "writtenBy" -> BsonArray(v.writtenBy.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "fieldConceptId" -> bsonStr(v.fieldConceptId))
+
+  private def fieldSpecFromDocument(doc: Document): FieldSpec = FieldSpec(
+      name = doc("name").asString().getValue,
+      dataType = doc("dataType").asString().getValue,
+      description = doc("description").asString().getValue,
+      role = doc("role").asString().getValue,
+      noteId = doc("noteId").asString().getValue,
+      writtenBy = doc.get("writtenBy") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      fieldConceptId = doc("fieldConceptId").asString().getValue)
+
+  private def edgeTargetToDocument(v: EdgeTarget): Document =
+    Document(
+      "conceptId" -> bsonStr(v.conceptId),
+      "name" -> bsonStr(v.name))
+
+  private def edgeTargetFromDocument(doc: Document): EdgeTarget = EdgeTarget(
+      conceptId = doc("conceptId").asString().getValue,
+      name = doc("name").asString().getValue)
+
+  private def fieldEdgeToDocument(v: FieldEdge): Document =
+    Document(
+      "fieldNoteId" -> bsonStr(v.fieldNoteId),
+      "slot" -> bsonStr(v.slot),
+      "expr" -> bsonStr(v.expr),
+      "fieldConceptId" -> bsonStr(v.fieldConceptId))
+
+  private def fieldEdgeFromDocument(doc: Document): FieldEdge = FieldEdge(
+      fieldNoteId = doc("fieldNoteId").asString().getValue,
+      slot = doc("slot").asString().getValue,
+      expr = doc("expr").asString().getValue,
+      fieldConceptId = doc("fieldConceptId").asString().getValue)
+
+  private def ucStepToDocument(v: UcStep): Document =
+    Document(
+      "no" -> bsonStr(v.no),
+      "atStep" -> bsonStr(v.atStep),
+      "text" -> bsonStr(v.text))
+
+  private def ucStepFromDocument(doc: Document): UcStep = UcStep(
+      no = doc("no").asString().getValue,
+      atStep = doc("atStep").asString().getValue,
+      text = doc("text").asString().getValue)
+
+  private def catalogConflictToDocument(v: CatalogConflict): Document =
+    Document(
+      "conflictId" -> bsonStr(v.conflictId),
+      "conflictType" -> bsonStr(v.conflictType),
+      "involvedSessionIds" -> BsonArray(v.involvedSessionIds.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "details" -> bsonStr(v.details),
+      "resolvedAt" -> BsonDateTime(v.resolvedAt.toEpochMilli),
+      "resolvedBy" -> bsonStr(v.resolvedBy),
+      "resolutionAction" -> bsonStr(v.resolutionAction),
+      "resolutionNote" -> bsonStr(v.resolutionNote))
+
+  private def catalogConflictFromDocument(doc: Document): CatalogConflict = CatalogConflict(
+      conflictId = doc("conflictId").asString().getValue,
+      conflictType = doc("conflictType").asString().getValue,
+      involvedSessionIds = doc.get("involvedSessionIds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      details = doc("details").asString().getValue,
+      resolvedAt = doc("resolvedAt") match { case v if v.isDateTime => java.time.Instant.ofEpochMilli(v.asDateTime().getValue); case v if v.isInt64 => java.time.Instant.ofEpochMilli(v.asInt64().getValue); case v if v.isString => java.time.Instant.parse(v.asString().getValue) },
+      resolvedBy = doc("resolvedBy").asString().getValue,
+      resolutionAction = doc("resolutionAction").asString().getValue,
+      resolutionNote = doc("resolutionNote").asString().getValue)
+
+  private def conflictDetailsToDocument(v: ConflictDetails): Document =
+    Document(
+      "conceptName" -> bsonStr(v.conceptName),
+      "contextId" -> bsonStr(v.contextId),
+      "existingConceptId" -> bsonStr(v.existingConceptId),
+      "incomingConceptId" -> bsonStr(v.incomingConceptId),
+      "reason" -> bsonStr(v.reason))
+
+  private def conflictDetailsFromDocument(doc: Document): ConflictDetails = ConflictDetails(
+      conceptName = doc("conceptName").asString().getValue,
+      contextId = doc("contextId").asString().getValue,
+      existingConceptId = doc("existingConceptId").asString().getValue,
+      incomingConceptId = doc("incomingConceptId").asString().getValue,
+      reason = doc("reason").asString().getValue)
 
 }

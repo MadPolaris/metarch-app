@@ -62,5 +62,29 @@ trait InviteWorkgroupMemberDecisionViewRepository {
   def findAll(): Future[List[InviteWorkgroupMemberDecisionView]]
   // Logic: 查全部 InviteWorkgroupMemberDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 4dcc9c97-ed44-4336-8991-48105de071e2@7987b8cc70521f5e
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[InviteWorkgroupMemberDecisionView]]
+  // Logic: 按 tenantId 分页查 InviteWorkgroupMemberDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 4dcc9c97-ed44-4336-8991-48105de071e2@7987b8cc70521f5e
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 InviteWorkgroupMemberDecisionView（分页 total）
+
+  /**
+   * @param invitedUserId  @knowledge 5574254c-8db6-46d9-bf30-9c24f7fa372c@ced8449dc8a144cd
+   */
+  def findByInvitedUserId(invitedUserId: String): Future[List[InviteWorkgroupMemberDecisionView]]
+  // Logic: 按 invitedUserIds 元素查 InviteWorkgroupMemberDecisionView 列表（子表元素索引）
+
+  /**
+   * @param memberUserId  @knowledge 1bae25ed-71c4-4b21-9070-af0a978b2e08@d61cdc6a9b689ef3
+   */
+  def findByMemberUserId(memberUserId: String): Future[List[InviteWorkgroupMemberDecisionView]]
+  // Logic: 按 memberUserIds 元素查 InviteWorkgroupMemberDecisionView 列表（子表元素索引）
+
 }
 

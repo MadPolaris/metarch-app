@@ -4,6 +4,7 @@ package net.imadz.metarch.application.projection.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
+import net.imadz.common.CommonTypes.Id
 import net.imadz.metarch.infrastructure.repositories.projection.NoteGraphViewRepositoryImpl
 import scala.collection.immutable.Map
 
@@ -21,7 +22,7 @@ object NoteGraphViewTable {
  * @param timeline 时间线（字符串化）  @knowledge d6bef5ec-6b26-4c01-a99c-73d7480b3ff4@536a83192143e71b
  * @param `type` 便签类型  @knowledge 7df1676f-65be-4176-9c7c-c27458db2779@781153270fdc6e16
  */
-case class NoteGraphView(boardId: String, content: String, externalId: String, hasConflictWarning: String, name: String, noteId: String, pivotal: String, sessionId: String, tenantId: String, timeline: String, `type`: String) {
+case class NoteGraphView(boardId: String, content: String, externalId: String, hasConflictWarning: Boolean, name: String, noteId: Id, pivotal: Boolean, sessionId: Id, tenantId: Id, timeline: String, `type`: String) {
 
 }
 }
@@ -36,10 +37,10 @@ trait NoteGraphViewRepository {
 
   import NoteGraphViewTable._
 
-  def upsertNode(key: String, props: Map[String, String]): Unit
+  def upsertNode(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点 MERGE 写侧（Note·ws: 空间前缀键）
 
-  def updateNodeProps(key: String, props: Map[String, String]): Unit
+  def updateNodeProps(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点属性 SET（Note）
 
   def deleteNode(key: String, tenantId: String): Unit

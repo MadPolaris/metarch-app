@@ -29,7 +29,7 @@ object ResolveCatalogConflictDecisionViewTable {
  * @param exportedAt 导出时间  @knowledge b83257b8-75de-48a3-9de3-7efb32fe382e@416f15b702bd8a29
  * @param exportedBy 导出人  @knowledge 8059be3b-c2ea-465f-8664-1ca893d1a090@8e8decd5155c6c5b
  * @param involvedSessionIds 冲突来源  @knowledge e467669c-69d2-4f96-8875-c9fbd2652a12@11ee062e0111b76f
- * @param knowledgePackages 知识包  @knowledge 34c9edc0-1d7d-4f06-8358-0687299527da@3fd8cbff0a9cf3ca
+ * @param knowledgePackages 知识包 [opaque: 裁决保留的原文载荷·不展开]  @knowledge 34c9edc0-1d7d-4f06-8358-0687299527da@3fd8cbff0a9cf3ca
  * @param patchSessionIds 补丁来源  @knowledge 5f02ede0-6720-4e2f-80d2-1a998ffbf68c@8c87cef7cc196741
  * @param projectId 所属专项  @knowledge 2ed51278-25c2-431d-8ae6-7bb755dca9a4@7935a1028c341991
  * @param releasedAt 发布时间  @knowledge a97ab588-289b-4027-8c62-82a6e683137e@b5e377db342760f7
@@ -42,9 +42,12 @@ object ResolveCatalogConflictDecisionViewTable {
  * @param tenantId 所属组织  @knowledge f9a8e089-b8a7-4ce4-8ecb-c0d9e1dba24c@6c52440999ffe6aa
  * @param version 版本号  @knowledge 5ddcd4fe-07d6-43cb-aa1c-9d66a86827be@2a9370948402434f
  */
-case class ResolveCatalogConflictDecisionView(appliedAt: Option[Instant], assembledAt: Option[Instant], assembledBy: String, baseVersion: String, catalogId: String, concepts: List[ConceptDelta], conflictId: String, conflictType: String, conflicts: List[CatalogConflict], details: String, detectedAt: Option[Instant], exportedAt: Option[Instant], exportedBy: String, involvedSessionIds: List[String], knowledgePackages: String, patchSessionIds: List[Id], projectId: String, releasedAt: Option[Instant], releasedBy: String, resolutionAction: String, resolutionNote: String, resolvedAt: Option[Instant], resolvedBy: String, sessionId: String, tenantId: String, version: String) {
+case class ResolveCatalogConflictDecisionView(appliedAt: Option[Instant], assembledAt: Option[Instant], assembledBy: String, baseVersion: String, catalogId: String, concepts: List[ConceptDelta], conflictId: String, conflictType: String, conflicts: List[CatalogConflict], details: ConflictDetails, detectedAt: Option[Instant], exportedAt: Option[Instant], exportedBy: String, involvedSessionIds: List[String], knowledgePackages: String, patchSessionIds: List[Id], projectId: String, releasedAt: Option[Instant], releasedBy: String, resolutionAction: String, resolutionNote: String, resolvedAt: Option[Instant], resolvedBy: String, sessionId: String, tenantId: String, version: String) {
 
 }
+
+/** ConflictDetails — ResolveCatalogConflictDecisionView.details 的展开子文档（info.structure·结构出处见树） */
+case class ConflictDetails(conceptName: String, contextId: String, existingConceptId: String, incomingConceptId: String, reason: String)
 }
 
 /**

@@ -38,7 +38,7 @@ object FsmDefinitionRules {
       checkAggregate(state, "EstablishFsmDefinition").getOrElse {
       // (用户拍板·statusEnum 流转)
       if (!(Option(state.status).isDefined && Set("PROPOSED").contains(state.status))) err("FSM_NOT_PROPOSED", "执行 EstablishFsmDefinition 前，聚合状态必须为 PROPOSED")
-      else Right(List(FsmDefinitionEstablished(state.fsmId, "", p.triggeredBy, Instant.now())))
+      else Right(List(FsmDefinitionEstablished(state.fsmId, "", p.triggeredBy, Instant.now(), state.tenantId)))
       }
   }
 
@@ -47,7 +47,7 @@ object FsmDefinitionRules {
     def apply(state: FsmDefinitionState, p: ProposeFsmDefinitionParams): Either[iMadzError, List[FsmDefinitionEvent]] =
       checkAggregate(state, "ProposeFsmDefinition").getOrElse {
       // （无命令级规则）
-      Right(List(FsmDefinitionProposed(state.fsmId, state.aggregateName, state.states, state.transitions, Instant.now(), state.createdBy, p.triggeredBy, Instant.now())))
+      Right(List(FsmDefinitionProposed(state.fsmId, p.tenantId, state.aggregateName, state.states, state.transitions, Instant.now(), state.createdBy, p.triggeredBy, Instant.now())))
       }
   }
 
@@ -58,7 +58,7 @@ object FsmDefinitionRules {
       // @knowledge 33a9a4ef-df86-471f-8f3b-1027f9b6ef0e@8223195f62fe209a
       // IR-FSM-CMD-001
       if (!(Option(state.status).exists(x => Set("PROPOSED").contains(x)))) err("FSM_NOT_PROPOSED", "执行 UpdateFsmElements 前，聚合状态必须为 PROPOSED")
-      else Right(List(FsmElementsUpdated(state.fsmId, state.states, state.transitions, p.triggeredBy, Instant.now())))
+      else Right(List(FsmElementsUpdated(state.fsmId, state.states, state.transitions, p.triggeredBy, Instant.now(), state.tenantId)))
       }
   }
 
@@ -75,6 +75,9 @@ object FsmDefinitionRules {
     // ir_evt_FsmDefinitionEstablished_fsmId_not_null
     if (!(Option(e.fsmId).isDefined)) Some(iMadzError("EVENT_BAD_ID", "FsmDefinitionEstablished.fsmId 必须存在"))
     // @knowledge 03253343-b20a-4ba6-8023-e5feacd3ddcb@87755c7256ba5a67
+    // ir_evt_FsmDefinitionEstablished_tenantId_not_null
+    else if (!(Option(e.tenantId).isDefined)) Some(iMadzError("EVENT_BAD_ID", "FsmDefinitionEstablished.tenantId 必须存在"))
+    // @knowledge 03253343-b20a-4ba6-8023-e5feacd3ddcb@87755c7256ba5a67
     // ir_evt_FsmDefinitionEstablished_timestamp
     else if (!(Option(e.timestamp).isDefined)) Some(iMadzError("EVENT_NO_TIMESTAMP", "FsmDefinitionEstablished.timestamp 不能为空"))
     else None
@@ -84,6 +87,9 @@ object FsmDefinitionRules {
     // ir_evt_FsmDefinitionProposed_fsmId_not_null
     if (!(Option(e.fsmId).isDefined)) Some(iMadzError("EVENT_BAD_ID", "FsmDefinitionProposed.fsmId 必须存在"))
     // @knowledge c8fa65ce-b4be-4785-9a70-a3ef13df83d7@5f2087f2503f0874
+    // ir_evt_FsmDefinitionProposed_tenantId_not_null
+    else if (!(Option(e.tenantId).isDefined)) Some(iMadzError("EVENT_BAD_ID", "FsmDefinitionProposed.tenantId 必须存在"))
+    // @knowledge c8fa65ce-b4be-4785-9a70-a3ef13df83d7@5f2087f2503f0874
     // ir_evt_FsmDefinitionProposed_timestamp
     else if (!(Option(e.timestamp).isDefined)) Some(iMadzError("EVENT_NO_TIMESTAMP", "FsmDefinitionProposed.timestamp 不能为空"))
     else None
@@ -92,6 +98,9 @@ object FsmDefinitionRules {
     // @knowledge 00086e98-6f87-49bf-911d-6def84f09d41@01a1a07677aae663
     // ir_evt_FsmElementsUpdated_fsmId_not_null
     if (!(Option(e.fsmId).isDefined)) Some(iMadzError("EVENT_BAD_ID", "FsmElementsUpdated.fsmId 必须存在"))
+    // @knowledge 00086e98-6f87-49bf-911d-6def84f09d41@01a1a07677aae663
+    // ir_evt_FsmElementsUpdated_tenantId_not_null
+    else if (!(Option(e.tenantId).isDefined)) Some(iMadzError("EVENT_BAD_ID", "FsmElementsUpdated.tenantId 必须存在"))
     // @knowledge 00086e98-6f87-49bf-911d-6def84f09d41@01a1a07677aae663
     // ir_evt_FsmElementsUpdated_timestamp
     else if (!(Option(e.timestamp).isDefined)) Some(iMadzError("EVENT_NO_TIMESTAMP", "FsmElementsUpdated.timestamp 不能为空"))

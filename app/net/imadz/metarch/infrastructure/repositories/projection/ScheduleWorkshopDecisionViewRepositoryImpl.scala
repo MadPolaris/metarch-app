@@ -3,10 +3,10 @@
 package net.imadz.metarch.infrastructure.repositories.projection
 
 import javax.inject.Singleton
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.ScheduleWorkshopDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.ScheduleWorkshopDecisionViewTable._
 import net.imadz.metarch.domain.values.ParticipantRole
-import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,12 +22,11 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
     // ==== BEGIN MANUAL ====
     DB.localTx { implicit session =>
       sql"""INSERT INTO scheduleworkshopdecisionview_table
-            (`completedAt`, `memberRoles`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE `completedAt` = VALUES(`completedAt`), `memberRoles` = VALUES(`memberRoles`), `patchId` = VALUES(`patchId`), `projectId` = VALUES(`projectId`), `scheduledAt` = VALUES(`scheduledAt`), `startedAt` = VALUES(`startedAt`), `tenantId` = VALUES(`tenantId`)"""
+            (`completedAt`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE `completedAt` = VALUES(`completedAt`), `patchId` = VALUES(`patchId`), `projectId` = VALUES(`projectId`), `scheduledAt` = VALUES(`scheduledAt`), `startedAt` = VALUES(`startedAt`), `tenantId` = VALUES(`tenantId`)"""
         .bind(
               (view.completedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
-              Json.toJson(view.memberRoles).toString(),
               view.patchId,
               view.projectId,
               (view.scheduledAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
@@ -36,6 +35,11 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
               view.workshopId
             )
         .update.apply()
+      // 子表（列表结构化·Phase 2 R4）：同事务先删后插
+      sql"DELETE FROM `scheduleworkshopdecisionview_memberroles_table` WHERE `workshopId` = ?".bind(view.workshopId).update.apply()
+      view.memberRoles.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `scheduleworkshopdecisionview_memberroles_table` (`workshopId`, `idx`, `userId`, `role`) VALUES (?, ?, ?, ?)".bind(view.workshopId, idx, elem.userId.toString, elem.role).update.apply()
+      }
     }
     // ==== END MANUAL ====
   }
@@ -47,13 +51,13 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `completedAt`, `memberRoles`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `completedAt`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
                   FROM scheduleworkshopdecisionview_table
                   WHERE `workshopId` = ?"""
               .bind(workshopId)
               .map(rs => ScheduleWorkshopDecisionView(
                 completedAt = rs.longOpt("completedAt").map(java.time.Instant.ofEpochMilli),
-                memberRoles = Json.parse(rs.string("memberRoles")).as[List[ParticipantRole]],
+                memberRoles = Nil,
                 patchId = rs.string("patchId"),
                 projectId = rs.string("projectId"),
                 scheduledAt = rs.longOpt("scheduledAt").map(java.time.Instant.ofEpochMilli),
@@ -61,7 +65,13 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
                 tenantId = rs.string("tenantId"),
                 workshopId = rs.string("workshopId")
               ))
-              .headOption.apply()
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                memberRoles = sql"SELECT `userId`, `role` FROM `scheduleworkshopdecisionview_memberroles_table` WHERE `workshopId` = ? ORDER BY `idx`".bind(row.workshopId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply()
+              )
+            }
+            hydrated.headOption
           }
         }
     // ==== END MANUAL ====
@@ -74,13 +84,13 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `completedAt`, `memberRoles`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `completedAt`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
                   FROM scheduleworkshopdecisionview_table
                   WHERE `patchId` = ?"""
               .bind(patchId)
               .map(rs => ScheduleWorkshopDecisionView(
                 completedAt = rs.longOpt("completedAt").map(java.time.Instant.ofEpochMilli),
-                memberRoles = Json.parse(rs.string("memberRoles")).as[List[ParticipantRole]],
+                memberRoles = Nil,
                 patchId = rs.string("patchId"),
                 projectId = rs.string("projectId"),
                 scheduledAt = rs.longOpt("scheduledAt").map(java.time.Instant.ofEpochMilli),
@@ -89,6 +99,12 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                memberRoles = sql"SELECT `userId`, `role` FROM `scheduleworkshopdecisionview_memberroles_table` WHERE `workshopId` = ? ORDER BY `idx`".bind(row.workshopId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -101,13 +117,13 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `completedAt`, `memberRoles`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `completedAt`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
                   FROM scheduleworkshopdecisionview_table
                   WHERE `projectId` = ?"""
               .bind(projectId)
               .map(rs => ScheduleWorkshopDecisionView(
                 completedAt = rs.longOpt("completedAt").map(java.time.Instant.ofEpochMilli),
-                memberRoles = Json.parse(rs.string("memberRoles")).as[List[ParticipantRole]],
+                memberRoles = Nil,
                 patchId = rs.string("patchId"),
                 projectId = rs.string("projectId"),
                 scheduledAt = rs.longOpt("scheduledAt").map(java.time.Instant.ofEpochMilli),
@@ -116,6 +132,12 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                memberRoles = sql"SELECT `userId`, `role` FROM `scheduleworkshopdecisionview_memberroles_table` WHERE `workshopId` = ? ORDER BY `idx`".bind(row.workshopId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -128,13 +150,13 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `completedAt`, `memberRoles`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `completedAt`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
                   FROM scheduleworkshopdecisionview_table
                   WHERE `tenantId` = ?"""
               .bind(tenantId)
               .map(rs => ScheduleWorkshopDecisionView(
                 completedAt = rs.longOpt("completedAt").map(java.time.Instant.ofEpochMilli),
-                memberRoles = Json.parse(rs.string("memberRoles")).as[List[ParticipantRole]],
+                memberRoles = Nil,
                 patchId = rs.string("patchId"),
                 projectId = rs.string("projectId"),
                 scheduledAt = rs.longOpt("scheduledAt").map(java.time.Instant.ofEpochMilli),
@@ -143,6 +165,12 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                memberRoles = sql"SELECT `userId`, `role` FROM `scheduleworkshopdecisionview_memberroles_table` WHERE `workshopId` = ? ORDER BY `idx`".bind(row.workshopId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -152,11 +180,11 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `completedAt`, `memberRoles`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `completedAt`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
                   FROM scheduleworkshopdecisionview_table"""
               .map(rs => ScheduleWorkshopDecisionView(
                 completedAt = rs.longOpt("completedAt").map(java.time.Instant.ofEpochMilli),
-                memberRoles = Json.parse(rs.string("memberRoles")).as[List[ParticipantRole]],
+                memberRoles = Nil,
                 patchId = rs.string("patchId"),
                 projectId = rs.string("projectId"),
                 scheduledAt = rs.longOpt("scheduledAt").map(java.time.Instant.ofEpochMilli),
@@ -165,6 +193,63 @@ class ScheduleWorkshopDecisionViewRepositoryImpl extends ScheduleWorkshopDecisio
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                memberRoles = sql"SELECT `userId`, `role` FROM `scheduleworkshopdecisionview_memberroles_table` WHERE `workshopId` = ? ORDER BY `idx`".bind(row.workshopId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 8d0df8b0-f554-45bf-a3e5-aada5dd0c6b1@d2224b86e382d0c0
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ScheduleWorkshopDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `completedAt`, `patchId`, `projectId`, `scheduledAt`, `startedAt`, `tenantId`, `workshopId`
+                  FROM scheduleworkshopdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `workshopId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => ScheduleWorkshopDecisionView(
+                completedAt = rs.longOpt("completedAt").map(java.time.Instant.ofEpochMilli),
+                memberRoles = Nil,
+                patchId = rs.string("patchId"),
+                projectId = rs.string("projectId"),
+                scheduledAt = rs.longOpt("scheduledAt").map(java.time.Instant.ofEpochMilli),
+                startedAt = rs.longOpt("startedAt").map(java.time.Instant.ofEpochMilli),
+                tenantId = rs.string("tenantId"),
+                workshopId = rs.string("workshopId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                memberRoles = sql"SELECT `userId`, `role` FROM `scheduleworkshopdecisionview_memberroles_table` WHERE `workshopId` = ? ORDER BY `idx`".bind(row.workshopId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 8d0df8b0-f554-45bf-a3e5-aada5dd0c6b1@d2224b86e382d0c0
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM scheduleworkshopdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
           }
         }
     // ==== END MANUAL ====

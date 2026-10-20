@@ -18,7 +18,7 @@ object ModelCatalogAggregate {
 
 
   // Wiring (Separated Behavior) - Type alias now in Protocol
-  def commandHandler: net.imadz.metarch.application.aggregates.ModelCatalogProtocol.ModelCatalogCommandHandlerFamily = ModelCatalogBehaviors.apply
+  def commandHandler(adjudicator: net.imadz.metarch.domain.service.ConceptDeltaAdjudicator, fingerprint: net.imadz.metarch.domain.service.ContentFingerprintPort): net.imadz.metarch.application.aggregates.ModelCatalogProtocol.ModelCatalogCommandHandlerFamily = ModelCatalogBehaviors.apply(adjudicator)
 
 
 

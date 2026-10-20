@@ -4,9 +4,9 @@ package net.imadz.metarch.infrastructure.repositories.projection
 
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.CreateWorkgroupDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.CreateWorkgroupDecisionViewTable._
-import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,21 +22,28 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
     // ==== BEGIN MANUAL ====
     DB.localTx { implicit session =>
       sql"""INSERT INTO createworkgroupdecisionview_table
-            (`archivedAt`, `createdAt`, `createdBy`, `invitedUserIds`, `memberUserIds`, `name`, `ownerUserId`, `tenantId`, `workgroupId`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE `archivedAt` = VALUES(`archivedAt`), `createdAt` = VALUES(`createdAt`), `createdBy` = VALUES(`createdBy`), `invitedUserIds` = VALUES(`invitedUserIds`), `memberUserIds` = VALUES(`memberUserIds`), `name` = VALUES(`name`), `ownerUserId` = VALUES(`ownerUserId`), `tenantId` = VALUES(`tenantId`)"""
+            (`archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE `archivedAt` = VALUES(`archivedAt`), `createdAt` = VALUES(`createdAt`), `createdBy` = VALUES(`createdBy`), `name` = VALUES(`name`), `ownerUserId` = VALUES(`ownerUserId`), `tenantId` = VALUES(`tenantId`)"""
         .bind(
               (view.archivedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               (view.createdAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.createdBy,
-              Json.toJson(view.invitedUserIds).toString(),
-              Json.toJson(view.memberUserIds).toString(),
               view.name,
               view.ownerUserId,
               view.tenantId,
               view.workgroupId
             )
         .update.apply()
+      // 子表（列表结构化·Phase 2 R4）：同事务先删后插
+      sql"DELETE FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ?".bind(view.workgroupId).update.apply()
+      view.invitedUserIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `createworkgroupdecisionview_inviteduserids_table` (`workgroupId`, `idx`, `value`) VALUES (?, ?, ?)".bind(view.workgroupId, idx, elem.toString).update.apply()
+      }
+      sql"DELETE FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ?".bind(view.workgroupId).update.apply()
+      view.memberUserIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `createworkgroupdecisionview_memberuserids_table` (`workgroupId`, `idx`, `value`) VALUES (?, ?, ?)".bind(view.workgroupId, idx, elem.toString).update.apply()
+      }
     }
     // ==== END MANUAL ====
   }
@@ -48,7 +55,7 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `invitedUserIds`, `memberUserIds`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
                   FROM createworkgroupdecisionview_table
                   WHERE `workgroupId` = ?"""
               .bind(workgroupId)
@@ -56,14 +63,21 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
                 archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
                 createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
                 createdBy = rs.string("createdBy"),
-                invitedUserIds = Json.parse(rs.string("invitedUserIds")).as[List[Id]],
-                memberUserIds = Json.parse(rs.string("memberUserIds")).as[List[Id]],
+                invitedUserIds = Nil,
+                memberUserIds = Nil,
                 name = rs.string("name"),
                 ownerUserId = rs.string("ownerUserId"),
                 tenantId = rs.string("tenantId"),
                 workgroupId = rs.string("workgroupId")
               ))
-              .headOption.apply()
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                invitedUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                memberUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated.headOption
           }
         }
     // ==== END MANUAL ====
@@ -76,7 +90,7 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `invitedUserIds`, `memberUserIds`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
                   FROM createworkgroupdecisionview_table
                   WHERE `ownerUserId` = ?"""
               .bind(ownerUserId)
@@ -84,14 +98,21 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
                 archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
                 createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
                 createdBy = rs.string("createdBy"),
-                invitedUserIds = Json.parse(rs.string("invitedUserIds")).as[List[Id]],
-                memberUserIds = Json.parse(rs.string("memberUserIds")).as[List[Id]],
+                invitedUserIds = Nil,
+                memberUserIds = Nil,
                 name = rs.string("name"),
                 ownerUserId = rs.string("ownerUserId"),
                 tenantId = rs.string("tenantId"),
                 workgroupId = rs.string("workgroupId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                invitedUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                memberUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -104,7 +125,7 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `invitedUserIds`, `memberUserIds`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
                   FROM createworkgroupdecisionview_table
                   WHERE `tenantId` = ?"""
               .bind(tenantId)
@@ -112,14 +133,21 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
                 archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
                 createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
                 createdBy = rs.string("createdBy"),
-                invitedUserIds = Json.parse(rs.string("invitedUserIds")).as[List[Id]],
-                memberUserIds = Json.parse(rs.string("memberUserIds")).as[List[Id]],
+                invitedUserIds = Nil,
+                memberUserIds = Nil,
                 name = rs.string("name"),
                 ownerUserId = rs.string("ownerUserId"),
                 tenantId = rs.string("tenantId"),
                 workgroupId = rs.string("workgroupId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                invitedUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                memberUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -129,20 +157,150 @@ class CreateWorkgroupDecisionViewRepositoryImpl extends CreateWorkgroupDecisionV
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `invitedUserIds`, `memberUserIds`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
                   FROM createworkgroupdecisionview_table"""
               .map(rs => CreateWorkgroupDecisionView(
                 archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
                 createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
                 createdBy = rs.string("createdBy"),
-                invitedUserIds = Json.parse(rs.string("invitedUserIds")).as[List[Id]],
-                memberUserIds = Json.parse(rs.string("memberUserIds")).as[List[Id]],
+                invitedUserIds = Nil,
+                memberUserIds = Nil,
                 name = rs.string("name"),
                 ownerUserId = rs.string("ownerUserId"),
                 tenantId = rs.string("tenantId"),
                 workgroupId = rs.string("workgroupId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                invitedUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                memberUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge b4429bfe-24ab-49eb-ab45-d22952747b79@ed7e562b0aff40df
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[CreateWorkgroupDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
+                  FROM createworkgroupdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `workgroupId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => CreateWorkgroupDecisionView(
+                archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                invitedUserIds = Nil,
+                memberUserIds = Nil,
+                name = rs.string("name"),
+                ownerUserId = rs.string("ownerUserId"),
+                tenantId = rs.string("tenantId"),
+                workgroupId = rs.string("workgroupId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                invitedUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                memberUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge b4429bfe-24ab-49eb-ab45-d22952747b79@ed7e562b0aff40df
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM createworkgroupdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param invitedUserId  @knowledge c70358f2-f261-4120-892b-783bfa503a6a@e28610ad0d1a7467
+   */
+  override def findByInvitedUserId(invitedUserId: String): Future[List[CreateWorkgroupDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
+                  FROM createworkgroupdecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `createworkgroupdecisionview_inviteduserids_table`.`workgroupId` = `createworkgroupdecisionview_table`.`workgroupId` AND `createworkgroupdecisionview_inviteduserids_table`.`value` = ?)"""
+              .bind(invitedUserId)
+              .map(rs => CreateWorkgroupDecisionView(
+                archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                invitedUserIds = Nil,
+                memberUserIds = Nil,
+                name = rs.string("name"),
+                ownerUserId = rs.string("ownerUserId"),
+                tenantId = rs.string("tenantId"),
+                workgroupId = rs.string("workgroupId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                invitedUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                memberUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param memberUserId  @knowledge c57170f4-2952-4d9d-818d-99d4d768957f@3c974209e8288a34
+   */
+  override def findByMemberUserId(memberUserId: String): Future[List[CreateWorkgroupDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `tenantId`, `workgroupId`
+                  FROM createworkgroupdecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `createworkgroupdecisionview_memberuserids_table` WHERE `createworkgroupdecisionview_memberuserids_table`.`workgroupId` = `createworkgroupdecisionview_table`.`workgroupId` AND `createworkgroupdecisionview_memberuserids_table`.`value` = ?)"""
+              .bind(memberUserId)
+              .map(rs => CreateWorkgroupDecisionView(
+                archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                invitedUserIds = Nil,
+                memberUserIds = Nil,
+                name = rs.string("name"),
+                ownerUserId = rs.string("ownerUserId"),
+                tenantId = rs.string("tenantId"),
+                workgroupId = rs.string("workgroupId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                invitedUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_inviteduserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                memberUserIds = sql"SELECT `value` FROM `createworkgroupdecisionview_memberuserids_table` WHERE `workgroupId` = ? ORDER BY `idx`".bind(row.workgroupId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====

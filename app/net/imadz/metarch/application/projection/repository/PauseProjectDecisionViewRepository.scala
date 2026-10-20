@@ -70,5 +70,17 @@ trait PauseProjectDecisionViewRepository {
   def findAll(): Future[List[PauseProjectDecisionView]]
   // Logic: 查全部 PauseProjectDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 7094f122-ae90-4fe3-99a2-d1910a7a8e30@2896276175b616f9
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[PauseProjectDecisionView]]
+  // Logic: 按 tenantId 分页查 PauseProjectDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 7094f122-ae90-4fe3-99a2-d1910a7a8e30@2896276175b616f9
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 PauseProjectDecisionView（分页 total）
+
 }
 

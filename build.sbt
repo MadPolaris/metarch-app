@@ -29,9 +29,12 @@ Compile / scalacOptions ++= Seq(
   "-Xlint")
 Compile / javacOptions ++= Seq("-Xlint:unchecked", "-Xlint:deprecation")
 
+// Phase 2 scaffold fix (2026-10-20): Huawei Cloud resolver removed - user directive:
+// no Huawei software/services. Resolvers are Maven Central + Aliyun only (the same
+// set as the phase2-scratch/stubcheck build that compiled the generated code).
 resolvers ++= Seq(
   "Aliyun" at "https://maven.aliyun.com/repository/public/",
-  "Huawei" at "https://repo.huaweicloud.com/repository/maven/"
+  Resolver.mavenCentral
 )
 
 //resolvers += "softprops-maven" at "http://dl.bintray.com/content/softprops/maven"
@@ -46,6 +49,23 @@ scriptClasspath := Seq("*", "../conf")
 libraryDependencies += guice
 libraryDependencies += jdbc
 libraryDependencies += clusterSharding
+// Phase 2 scaffold fix (2026-10-20): net.imadz engine dependencies (Maven Central,
+// groupId net.imadz, version 0.2) for the generated code - closing the compile-
+// baseline root cause in phase2-implementation-report.md 3.1/3.4 (the generated
+// build.sbt carried no net.imadz deps, so every net.imadz.common.* import failed
+// and cascaded). Evidence: import scan of gen-out-phase2 + inspection of the
+// published 0.2 jars.
+//   common-core: net.imadz.common.CommonTypes (Id, iMadzError), net.imadz.common.Id,
+//     CborSerializable, application.CommandHandlerReplyingBehavior,
+//     application.projection.ScalikeJdbcSession / ScalikeJdbcSetup,
+//     serialization.PrimitiveConverter.
+//   auth-core: net.imadz.common.auth.ApiError / Endpoint (generated API
+//     controllers) - these classes ship in the auth-core jar, not in common-core.
+// monarch-core / saga-core / monarch-persistence are NOT referenced by generated
+// code (zero net.imadz.monarch.* or net.imadz.infra.saga.* occurrences in
+// gen-out-phase2) and are intentionally not added (minimal dependencies).
+libraryDependencies += "net.imadz" %% "common-core" % "0.2"
+libraryDependencies += "net.imadz" %% "auth-core" % "0.2"
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion,

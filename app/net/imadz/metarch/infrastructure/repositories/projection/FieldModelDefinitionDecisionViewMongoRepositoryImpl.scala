@@ -6,23 +6,31 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.FieldModelDefinitionDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.FieldModelDefinitionDecisionViewTable._
 import net.imadz.metarch.domain.values.AggregateRelationSpec
+import net.imadz.metarch.domain.values.EventBinding
 import net.imadz.metarch.domain.values.FieldCommandSpec
 import net.imadz.metarch.domain.values.FieldEventSpec
+import net.imadz.metarch.domain.values.FieldParamSpec
 import net.imadz.metarch.domain.values.FieldStateSpec
+import net.imadz.metarch.domain.values.GuardSpec
 import net.imadz.metarch.domain.values.RuleRef
 import net.imadz.metarch.domain.values.StateGateSpec
 import net.imadz.metarch.domain.values.StatusTransitionSpec
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsNull
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonArray
+import org.mongodb.scala.bson.BsonBoolean
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scalikejdbc._
 
 /**
@@ -33,7 +41,7 @@ class FieldModelDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: 
 
   override def upsert(view: FieldModelDefinitionDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_field_model_definitions", "definitionId", view.definitionId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_field_model_definitions", "definitionId", view.definitionId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -42,7 +50,7 @@ class FieldModelDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: 
    */
   override def findByIdentity(definitionId: String): Future[Option[FieldModelDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_field_model_definitions", definitionId, definitionId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_field_model_definitions", definitionId, definitionId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -51,13 +59,13 @@ class FieldModelDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: 
    */
   override def findByTenantId(tenantId: String): Future[List[FieldModelDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_field_model_definitions", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_field_model_definitions", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[FieldModelDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_field_model_definitions").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_field_model_definitions").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -66,7 +74,7 @@ class FieldModelDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: 
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[FieldModelDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_field_model_definitions", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_field_model_definitions", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -75,66 +83,276 @@ class FieldModelDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore: 
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_field_model_definitions").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_field_model_definitions", tenantId)
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: FieldModelDefinitionDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "aggregateName" -> Json.toJson(view.aggregateName),
-      "aggregateRuleRefs" -> Json.toJson(view.aggregateRuleRefs),
-      "commands" -> Json.toJson(view.commands),
-      "declaredAt" -> view.declaredAt.map(x => JsString(x.toString)),
-      "declaredBy" -> Json.toJson(view.declaredBy),
-      "definitionId" -> (if (view.definitionId == null) JsNull else Json.toJson(view.definitionId)),
-      "description" -> Json.toJson(view.description),
-      "entityName" -> Json.toJson(view.entityName),
-      "events" -> Json.toJson(view.events),
-      "identifierDescription" -> Json.toJson(view.identifierDescription),
-      "identifierName" -> Json.toJson(view.identifierName),
-      "identifierOrigin" -> Json.toJson(view.identifierOrigin),
-      "identifierType" -> Json.toJson(view.identifierType),
-      "relations" -> Json.toJson(view.relations),
-      "removedAt" -> view.removedAt.map(x => JsString(x.toString)),
-      "stateFields" -> Json.toJson(view.stateFields),
-      "stateGates" -> Json.toJson(view.stateGates),
-      "statusEnumValues" -> Json.toJson(view.statusEnumValues),
-      "statusTransitions" -> Json.toJson(view.statusTransitions),
-      "tenantId" -> Json.toJson(view.tenantId),
-      "tenantScoped" -> Json.toJson(view.tenantScoped),
-      "terminalStates" -> Json.toJson(view.terminalStates)))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: FieldModelDefinitionDecisionView): Document =
+    Document(
+      "aggregateName" -> bsonStr(view.aggregateName),
+      "aggregateRuleRefs" -> BsonArray(view.aggregateRuleRefs.map(elem => (ruleRefToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "commands" -> BsonArray(view.commands.map(elem => (fieldCommandSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "declaredAt" -> (view.declaredAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "declaredBy" -> bsonStr(view.declaredBy),
+      "definitionId" -> ((if (view.definitionId == null) BsonNull() else BsonString(view.definitionId.toString)): org.mongodb.scala.bson.BsonValue),
+      "description" -> bsonStr(view.description),
+      "entityName" -> bsonStr(view.entityName),
+      "events" -> BsonArray(view.events.map(elem => (fieldEventSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "identifierDescription" -> bsonStr(view.identifierDescription),
+      "identifierName" -> bsonStr(view.identifierName),
+      "identifierOrigin" -> bsonStr(view.identifierOrigin),
+      "identifierType" -> bsonStr(view.identifierType),
+      "relations" -> BsonArray(view.relations.map(elem => (aggregateRelationSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "removedAt" -> (view.removedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "stateFields" -> BsonArray(view.stateFields.map(elem => (fieldStateSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "stateGates" -> BsonArray(view.stateGates.map(elem => (stateGateSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "statusEnumValues" -> BsonArray(view.statusEnumValues.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "statusTransitions" -> BsonArray(view.statusTransitions.map(elem => (statusTransitionSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "tenantId" -> bsonStr(view.tenantId),
+      "tenantScoped" -> BsonBoolean(view.tenantScoped),
+      "terminalStates" -> BsonArray(view.terminalStates.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))))
 
-  /** JSON 串 → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
-    * guards 型全表 500 事故的 Mongo 路免疫面；对照 store 侧 docsToJsons 只挡 toJson 失败，本层挡字段级 decode 失败） */
-  private def safeRowToView(json: String): Option[FieldModelDefinitionDecisionView] =
-    scala.util.Try(rowToView(json)).toOption
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
-  private def rowToView(json: String): FieldModelDefinitionDecisionView = {
-    val v = play.api.libs.json.Json.parse(json)
-    FieldModelDefinitionDecisionView(
-      aggregateName = (v \ "aggregateName").as[String],
-      aggregateRuleRefs = (v \ "aggregateRuleRefs").asOpt[List[RuleRef]].getOrElse(Nil),
-      commands = (v \ "commands").asOpt[List[FieldCommandSpec]].getOrElse(Nil),
-      declaredAt = (v \ "declaredAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "declaredAt").asOpt[String].map(java.time.Instant.parse)),
-      declaredBy = (v \ "declaredBy").as[String],
-      definitionId = (v \ "definitionId").asOpt[Id].getOrElse(null),
-      description = (v \ "description").as[String],
-      entityName = (v \ "entityName").as[String],
-      events = (v \ "events").asOpt[List[FieldEventSpec]].getOrElse(Nil),
-      identifierDescription = (v \ "identifierDescription").as[String],
-      identifierName = (v \ "identifierName").as[String],
-      identifierOrigin = (v \ "identifierOrigin").as[String],
-      identifierType = (v \ "identifierType").as[String],
-      relations = (v \ "relations").asOpt[List[AggregateRelationSpec]].getOrElse(Nil),
-      removedAt = (v \ "removedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "removedAt").asOpt[String].map(java.time.Instant.parse)),
-      stateFields = (v \ "stateFields").asOpt[List[FieldStateSpec]].getOrElse(Nil),
-      stateGates = (v \ "stateGates").asOpt[List[StateGateSpec]].getOrElse(Nil),
-      statusEnumValues = (v \ "statusEnumValues").asOpt[List[String]].getOrElse(Nil),
-      statusTransitions = (v \ "statusTransitions").asOpt[List[StatusTransitionSpec]].getOrElse(Nil),
-      tenantId = (v \ "tenantId").as[String],
-      tenantScoped = (v \ "tenantScoped").as[Boolean],
-      terminalStates = (v \ "terminalStates").asOpt[List[String]].getOrElse(Nil))
-  }
+  /** Document → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
+    * guards 型全表 500 事故的 Mongo 路免疫面；本层挡字段级 decode 失败） */
+  private def safeRowToView(doc: Document): Option[FieldModelDefinitionDecisionView] =
+    scala.util.Try(rowFromDocument(doc)).toOption
+
+  private def rowFromDocument(doc: Document): FieldModelDefinitionDecisionView = FieldModelDefinitionDecisionView(
+      aggregateName = doc("aggregateName").asString().getValue,
+      aggregateRuleRefs = doc.get("aggregateRuleRefs") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ruleRefFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      commands = doc.get("commands") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldCommandSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      declaredAt = doc.get("declaredAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      declaredBy = doc("declaredBy").asString().getValue,
+      definitionId = doc.get("definitionId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      description = doc("description").asString().getValue,
+      entityName = doc("entityName").asString().getValue,
+      events = doc.get("events") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldEventSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      identifierDescription = doc("identifierDescription").asString().getValue,
+      identifierName = doc("identifierName").asString().getValue,
+      identifierOrigin = doc("identifierOrigin").asString().getValue,
+      identifierType = doc("identifierType").asString().getValue,
+      relations = doc.get("relations") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => aggregateRelationSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      removedAt = doc.get("removedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      stateFields = doc.get("stateFields") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldStateSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      stateGates = doc.get("stateGates") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => stateGateSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      statusEnumValues = doc.get("statusEnumValues") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      statusTransitions = doc.get("statusTransitions") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => statusTransitionSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      tenantId = doc("tenantId").asString().getValue,
+      tenantScoped = doc("tenantScoped").asBoolean().getValue,
+      terminalStates = doc.get("terminalStates") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil })
+
+  private def ruleRefToDocument(v: RuleRef): Document =
+    Document(
+      "ruleId" -> bsonStr(v.ruleId),
+      "errCode" -> bsonStr(v.errCode),
+      "desc" -> bsonStr(v.desc))
+
+  private def ruleRefFromDocument(doc: Document): RuleRef = RuleRef(
+      ruleId = doc("ruleId").asString().getValue,
+      errCode = doc("errCode").asString().getValue,
+      desc = doc("desc").asString().getValue)
+
+  private def fieldCommandSpecToDocument(v: FieldCommandSpec): Document =
+    Document(
+      "commandName" -> bsonStr(v.commandName),
+      "description" -> bsonStr(v.description),
+      "produces" -> BsonArray(v.produces.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "preconditions" -> BsonArray(v.preconditions.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "parameters" -> BsonArray(v.parameters.map(elem => (fieldParamSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()),
+      "guards" -> BsonArray(v.guards.map(elem => (guardSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "preconditionRefs" -> BsonArray(v.preconditionRefs.map(elem => (ruleRefToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))))
+
+  private def fieldCommandSpecFromDocument(doc: Document): FieldCommandSpec = FieldCommandSpec(
+      commandName = doc("commandName").asString().getValue,
+      description = doc("description").asString().getValue,
+      produces = doc.get("produces") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      preconditions = doc.get("preconditions") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      parameters = doc.get("parameters") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldParamSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None },
+      guards = doc.get("guards") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => guardSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      preconditionRefs = doc.get("preconditionRefs") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ruleRefFromDocument(Document(elem.asDocument()))).toList; case _ => Nil })
+
+  private def fieldParamSpecToDocument(v: FieldParamSpec): Document =
+    Document(
+      "paramName" -> bsonStr(v.paramName),
+      "dataType" -> bsonStr(v.dataType),
+      "description" -> bsonStr(v.description),
+      "uiLabel" -> bsonStr(v.uiLabel),
+      "businessDef" -> bsonStr(v.businessDef),
+      "origin" -> bsonStr(v.origin),
+      "lineageHint" -> bsonStr(v.lineageHint),
+      "derivation" -> bsonStr(v.derivation),
+      "role" -> bsonStr(v.role),
+      "optional" -> BsonBoolean(v.optional),
+      "optionalWhen" -> bsonStr(v.optionalWhen),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()))
+
+  private def fieldParamSpecFromDocument(doc: Document): FieldParamSpec = FieldParamSpec(
+      paramName = doc("paramName").asString().getValue,
+      dataType = doc("dataType").asString().getValue,
+      description = doc("description").asString().getValue,
+      uiLabel = doc("uiLabel").asString().getValue,
+      businessDef = doc("businessDef").asString().getValue,
+      origin = doc("origin").asString().getValue,
+      lineageHint = doc("lineageHint").asString().getValue,
+      derivation = doc("derivation").asString().getValue,
+      role = doc("role").asString().getValue,
+      optional = doc("optional").asBoolean().getValue,
+      optionalWhen = doc("optionalWhen").asString().getValue,
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None })
+
+  private def guardSpecToDocument(v: GuardSpec): Document =
+    Document(
+      "kind" -> bsonStr(v.kind),
+      "ref" -> bsonStr(v.ref),
+      "errCode" -> bsonStr(v.errCode),
+      "desc" -> bsonStr(v.desc),
+      "cond" -> bsonStr(v.cond),
+      "from" -> bsonStr(v.from),
+      "toStatus" -> bsonStr(v.toStatus),
+      "notStatus" -> BsonArray(v.notStatus.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "note" -> v.note.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()))
+
+  private def guardSpecFromDocument(doc: Document): GuardSpec = GuardSpec(
+      kind = doc("kind").asString().getValue,
+      ref = doc("ref").asString().getValue,
+      errCode = doc("errCode").asString().getValue,
+      desc = doc("desc").asString().getValue,
+      cond = doc("cond").asString().getValue,
+      from = doc("from").asString().getValue,
+      toStatus = doc("toStatus").asString().getValue,
+      notStatus = doc.get("notStatus") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      note = doc.get("note") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None })
+
+  private def fieldEventSpecToDocument(v: FieldEventSpec): Document =
+    Document(
+      "eventName" -> bsonStr(v.eventName),
+      "description" -> bsonStr(v.description),
+      "humanDescription" -> bsonStr(v.humanDescription),
+      "origin" -> bsonStr(v.origin),
+      "payloads" -> BsonArray(v.payloads.map(elem => (fieldParamSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()),
+      "bindings" -> BsonArray(v.bindings.map(elem => (eventBindingToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "forEach" -> v.forEach.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()),
+      "foldAssignments" -> BsonArray(v.foldAssignments.map(elem => (eventBindingToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "postconditionRefs" -> BsonArray(v.postconditionRefs.map(elem => (ruleRefToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))))
+
+  private def fieldEventSpecFromDocument(doc: Document): FieldEventSpec = FieldEventSpec(
+      eventName = doc("eventName").asString().getValue,
+      description = doc("description").asString().getValue,
+      humanDescription = doc("humanDescription").asString().getValue,
+      origin = doc("origin").asString().getValue,
+      payloads = doc.get("payloads") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => fieldParamSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None },
+      bindings = doc.get("bindings") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => eventBindingFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      forEach = doc.get("forEach") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None },
+      foldAssignments = doc.get("foldAssignments") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => eventBindingFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      postconditionRefs = doc.get("postconditionRefs") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => ruleRefFromDocument(Document(elem.asDocument()))).toList; case _ => Nil })
+
+  private def eventBindingToDocument(v: EventBinding): Document =
+    Document(
+      "slot" -> bsonStr(v.slot),
+      "expr" -> bsonStr(v.expr))
+
+  private def eventBindingFromDocument(doc: Document): EventBinding = EventBinding(
+      slot = doc("slot").asString().getValue,
+      expr = doc("expr").asString().getValue)
+
+  private def aggregateRelationSpecToDocument(v: AggregateRelationSpec): Document =
+    Document(
+      "toAggregate" -> bsonStr(v.toAggregate),
+      "cardinality" -> bsonStr(v.cardinality),
+      "foreignKey" -> bsonStr(v.foreignKey),
+      "writePath" -> bsonStr(v.writePath),
+      "ruling" -> bsonStr(v.ruling),
+      "semanticType" -> bsonStr(v.semanticType),
+      "causal" -> bsonStr(v.causal),
+      "temporal" -> BsonBoolean(v.temporal),
+      "existence" -> bsonStr(v.existence),
+      "targetDeletionPolicy" -> bsonStr(v.targetDeletionPolicy),
+      "targetTypes" -> BsonArray(v.targetTypes.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()))
+
+  private def aggregateRelationSpecFromDocument(doc: Document): AggregateRelationSpec = AggregateRelationSpec(
+      toAggregate = doc("toAggregate").asString().getValue,
+      cardinality = doc("cardinality").asString().getValue,
+      foreignKey = doc("foreignKey").asString().getValue,
+      writePath = doc("writePath").asString().getValue,
+      ruling = doc("ruling").asString().getValue,
+      semanticType = doc("semanticType").asString().getValue,
+      causal = doc("causal").asString().getValue,
+      temporal = doc("temporal").asBoolean().getValue,
+      existence = doc("existence").asString().getValue,
+      targetDeletionPolicy = doc("targetDeletionPolicy").asString().getValue,
+      targetTypes = doc.get("targetTypes") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None })
+
+  private def fieldStateSpecToDocument(v: FieldStateSpec): Document =
+    Document(
+      "fieldName" -> bsonStr(v.fieldName),
+      "dataType" -> bsonStr(v.dataType),
+      "description" -> bsonStr(v.description),
+      "uiLabel" -> bsonStr(v.uiLabel),
+      "businessDef" -> bsonStr(v.businessDef),
+      "derivation" -> bsonStr(v.derivation),
+      "lineageHint" -> bsonStr(v.lineageHint),
+      "parent" -> bsonStr(v.parent),
+      "fold" -> bsonStr(v.fold),
+      "source" -> bsonStr(v.source),
+      "origin" -> bsonStr(v.origin),
+      "role" -> bsonStr(v.role),
+      "writtenBy" -> BsonArray(v.writtenBy.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "nature" -> v.nature.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()),
+      "foldAssignments" -> BsonArray(v.foldAssignments.map(elem => (eventBindingToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))))
+
+  private def fieldStateSpecFromDocument(doc: Document): FieldStateSpec = FieldStateSpec(
+      fieldName = doc("fieldName").asString().getValue,
+      dataType = doc("dataType").asString().getValue,
+      description = doc("description").asString().getValue,
+      uiLabel = doc("uiLabel").asString().getValue,
+      businessDef = doc("businessDef").asString().getValue,
+      derivation = doc("derivation").asString().getValue,
+      lineageHint = doc("lineageHint").asString().getValue,
+      parent = doc("parent").asString().getValue,
+      fold = doc("fold").asString().getValue,
+      source = doc("source").asString().getValue,
+      origin = doc("origin").asString().getValue,
+      role = doc("role").asString().getValue,
+      writtenBy = doc.get("writtenBy") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      nature = doc.get("nature") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None },
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None },
+      foldAssignments = doc.get("foldAssignments") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => eventBindingFromDocument(Document(elem.asDocument()))).toList; case _ => Nil })
+
+  private def stateGateSpecToDocument(v: StateGateSpec): Document =
+    Document(
+      "commandName" -> bsonStr(v.commandName),
+      "fromStates" -> BsonArray(v.fromStates.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "toState" -> bsonStr(v.toState),
+      "initial" -> BsonBoolean(v.initial),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()))
+
+  private def stateGateSpecFromDocument(doc: Document): StateGateSpec = StateGateSpec(
+      commandName = doc("commandName").asString().getValue,
+      fromStates = doc.get("fromStates") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      toState = doc("toState").asString().getValue,
+      initial = doc("initial").asBoolean().getValue,
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None })
+
+  private def statusTransitionSpecToDocument(v: StatusTransitionSpec): Document =
+    Document(
+      "eventName" -> bsonStr(v.eventName),
+      "toState" -> bsonStr(v.toState),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()))
+
+  private def statusTransitionSpecFromDocument(doc: Document): StatusTransitionSpec = StatusTransitionSpec(
+      eventName = doc("eventName").asString().getValue,
+      toState = doc("toState").asString().getValue,
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None })
 
 }

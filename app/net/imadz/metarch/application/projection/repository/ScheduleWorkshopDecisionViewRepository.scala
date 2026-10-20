@@ -67,5 +67,17 @@ trait ScheduleWorkshopDecisionViewRepository {
   def findAll(): Future[List[ScheduleWorkshopDecisionView]]
   // Logic: 查全部 ScheduleWorkshopDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 8d0df8b0-f554-45bf-a3e5-aada5dd0c6b1@d2224b86e382d0c0
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ScheduleWorkshopDecisionView]]
+  // Logic: 按 tenantId 分页查 ScheduleWorkshopDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 8d0df8b0-f554-45bf-a3e5-aada5dd0c6b1@d2224b86e382d0c0
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 ScheduleWorkshopDecisionView（分页 total）
+
 }
 

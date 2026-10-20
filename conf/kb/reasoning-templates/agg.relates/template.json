@@ -1,0 +1,12 @@
+{
+  "name": "agg.relates",
+  "description": "聚合缩并图问答：给定聚合，沿 :AGG_RELATES 物化边（M2 kn_materialize 推导·orchestration/folds 双族）做 1..3 跳变长遍历，返回跨聚合影响路径（战略级·二跳内出结果）。",
+  "doc": "kn_kb_storage_plan §6.1 聚合缩并图＋§6.3 物化（M2 模板 4·批7 新增——依赖 kn_materialize.mjs 重算，graph release 后未重跑则本模板结果滞后）",
+  "params": {
+    "tenant":   { "type": "string", "required": true, "desc": "租户键（默认 root）" },
+    "project":  { "type": "string", "required": true, "desc": "项目键（默认 metarch）" },
+    "agg":      { "type": "string", "required": true, "desc": "起始聚合名（如 DoR）" }
+  },
+  "cypher": "query.cypher",
+  "golden": "golden.json"
+}

@@ -46,5 +46,11 @@ trait DeactivateUserDecisionViewRepository {
   def findAll(): Future[List[DeactivateUserDecisionView]]
   // Logic: 查全部 DeactivateUserDecisionView 行
 
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[DeactivateUserDecisionView]]
+  // Logic: 按 tenantId 分页查 DeactivateUserDecisionView（SQL 级租户下推·limit/offset）
+
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 DeactivateUserDecisionView（分页 total）
+
 }
 

@@ -56,5 +56,17 @@ trait RemoveTenantMemberDecisionViewRepository {
   def findAll(): Future[List[RemoveTenantMemberDecisionView]]
   // Logic: 查全部 RemoveTenantMemberDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge ca42610d-5145-47a6-b7bd-a45b8fa0fa3f@78967c1dd53d8a31
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[RemoveTenantMemberDecisionView]]
+  // Logic: 按 tenantId 分页查 RemoveTenantMemberDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge ca42610d-5145-47a6-b7bd-a45b8fa0fa3f@78967c1dd53d8a31
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 RemoveTenantMemberDecisionView（分页 total）
+
 }
 

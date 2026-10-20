@@ -18,17 +18,17 @@ object FsmDefinitionEventHandler {
   def apply: FsmDefinitionEventHandler = (state, event) => event match {
     // @knowledge 03253343-b20a-4ba6-8023-e5feacd3ddcb@87755c7256ba5a67
     case event: FsmDefinitionEstablished =>
-      state.copy(status = "ESTABLISHED")
+      state.copy(status = "ESTABLISHED", tenantId = event.tenantId)
       // 待审: createdAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；createdBy（审计字段，本事件无同名载荷/词干专属/创建更新类）；payload 未映射: fsmId, confirmedBy
 
     // @knowledge c8fa65ce-b4be-4785-9a70-a3ef13df83d7@5f2087f2503f0874
     case event: FsmDefinitionProposed =>
-      state.copy(aggregateName = event.aggregateName, states = event.states, transitions = event.transitions, createdAt = event.createdAt, createdBy = event.createdBy, status = "PROPOSED")
+      state.copy(tenantId = event.tenantId, aggregateName = event.aggregateName, states = event.states, transitions = event.transitions, createdAt = event.createdAt, createdBy = event.createdBy, status = "PROPOSED")
       // 待审: payload 未映射: fsmId
 
     // @knowledge 00086e98-6f87-49bf-911d-6def84f09d41@01a1a07677aae663
     case event: FsmElementsUpdated =>
-      state.copy(states = event.states, transitions = event.transitions, status = "PROPOSED")
+      state.copy(states = event.states, transitions = event.transitions, status = "PROPOSED", tenantId = event.tenantId)
       // 待审: createdAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；createdBy（审计字段，本事件无同名载荷/词干专属/创建更新类）；payload 未映射: fsmId
     case _ => state // 默认兜底
   }

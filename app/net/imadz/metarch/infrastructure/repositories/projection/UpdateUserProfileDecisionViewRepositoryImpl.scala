@@ -81,4 +81,41 @@ class UpdateUserProfileDecisionViewRepositoryImpl extends UpdateUserProfileDecis
     // ==== END MANUAL ====
   }
 
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[UpdateUserProfileDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `authMethod`, `displayName`, `email`, `phoneNumber`, `registeredAt`, `userId`
+                  FROM updateuserprofiledecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `userId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => UpdateUserProfileDecisionView(
+                authMethod = rs.string("authMethod"),
+                displayName = rs.string("displayName"),
+                email = rs.string("email"),
+                phoneNumber = rs.string("phoneNumber"),
+                registeredAt = rs.longOpt("registeredAt").map(java.time.Instant.ofEpochMilli),
+                userId = rs.string("userId")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM updateuserprofiledecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

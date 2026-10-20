@@ -4,6 +4,7 @@ package net.imadz.metarch.application.projection.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
+import net.imadz.common.CommonTypes.Id
 import net.imadz.metarch.infrastructure.repositories.projection.ContextGraphViewRepositoryImpl
 import scala.collection.immutable.Map
 
@@ -14,7 +15,7 @@ object ContextGraphViewTable {
  * @param name 上下文名  @knowledge 80d2de9e-14a1-40db-9f52-cf22d099ddef@c7a9351ab2f229fd
  * @param tenantId 租户戳  @knowledge 68828b28-1509-4ada-8522-c5f7154d9860@bd39438604e957af
  */
-case class ContextGraphView(contextId: String, description: String, name: String, tenantId: String) {
+case class ContextGraphView(contextId: Id, description: String, name: String, tenantId: Id) {
 
 }
 }
@@ -29,10 +30,10 @@ trait ContextGraphViewRepository {
 
   import ContextGraphViewTable._
 
-  def upsertNode(key: String, props: Map[String, String]): Unit
+  def upsertNode(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点 MERGE 写侧（Context·kn: 空间前缀键）
 
-  def updateNodeProps(key: String, props: Map[String, String]): Unit
+  def updateNodeProps(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点属性 SET（Context）
 
   def deleteNode(key: String, tenantId: String): Unit

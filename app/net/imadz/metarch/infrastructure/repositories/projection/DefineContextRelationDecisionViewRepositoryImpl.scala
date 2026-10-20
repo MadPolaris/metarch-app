@@ -174,4 +174,50 @@ class DefineContextRelationDecisionViewRepositoryImpl extends DefineContextRelat
     // ==== END MANUAL ====
   }
 
+  /**
+   * @param tenantId  @knowledge 2f86f2be-ceb8-4deb-af27-8951cab387a7@686c63056034e349
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[DefineContextRelationDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `createdAt`, `createdBy`, `description`, `downstreamContextId`, `integration`, `kind`, `relationId`, `tenantId`, `upstreamContextId`
+                  FROM definecontextrelationdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `relationId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => DefineContextRelationDecisionView(
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                description = rs.string("description"),
+                downstreamContextId = rs.string("downstreamContextId"),
+                integration = rs.string("integration"),
+                kind = rs.string("kind"),
+                relationId = rs.string("relationId"),
+                tenantId = rs.string("tenantId"),
+                upstreamContextId = rs.string("upstreamContextId")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 2f86f2be-ceb8-4deb-af27-8951cab387a7@686c63056034e349
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM definecontextrelationdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

@@ -1,0 +1,44 @@
+{
+  "comment": "process.family golden（D6 四面锚定·2026-09-19）。两侧证据：behavior＝EngplaneObject.processFamily 锚·execution＝EngplaneJournalFamily 计数。runtime-service 族豁免留痕（ontology coverage:exempt·零事件符合设计）。负断言：伪造族名两侧皆空＝本图无此路径（非「系统中不存在」）。",
+  "cases": [
+    {
+      "kind": "positive",
+      "note": "verification-gate：行为锚 object:StageArtifact ＋ 执行面 132 次 gate_run",
+      "params": { "family": "verification-gate" },
+      "expect": {
+        "rows": 2,
+        "contains": [
+          { "side": "behavior", "anchorId": "object:StageArtifact" },
+          { "side": "execution", "anchorId": "journal-family:verification-gate" }
+        ]
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "loop-closure：DraftRevision 锚 ＋ 4 轮闭环事件（proc_journal_sync 回填产物）",
+      "params": { "family": "loop-closure" },
+      "expect": {
+        "rows": 2,
+        "contains": [
+          { "side": "behavior", "anchorId": "object:DraftRevision" },
+          { "side": "execution", "anchorId": "journal-family:loop-closure" }
+        ]
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "豁免族 runtime-service：执行面节点在（count=0 如实登记）·无行为锚",
+      "params": { "family": "runtime-service" },
+      "expect": {
+        "rows": 1,
+        "contains": [{ "side": "execution", "anchorId": "journal-family:runtime-service" }]
+      }
+    },
+    {
+      "kind": "negative",
+      "note": "伪造族名 → 两侧皆空（本图无此路径）",
+      "params": { "family": "no-such-family" },
+      "expect": { "rows": 0 }
+    }
+  ]
+}

@@ -34,7 +34,7 @@ trait FsmDefinitionCommandHelpers {
 
   implicit object ProposeFsmDefinitionHelper extends CommandHelper[ProposeFsmDefinition, FsmDefinitionState, ProposeFsmDefinitionParams, ProposeFsmDefinitionReply] {
     override def toParam(state: FsmDefinitionState, command: ProposeFsmDefinition): ProposeFsmDefinitionParams =
-      ProposeFsmDefinitionParams(command.triggeredBy, command.fsmId, command.aggregateName, command.states, command.transitions, command.createdBy)
+      ProposeFsmDefinitionParams(command.triggeredBy, command.fsmId, command.tenantId, command.aggregateName, command.states, command.transitions, command.createdBy)
 
     override def createFailureReply(param: ProposeFsmDefinitionParams)(error: iMadzError): ProposeFsmDefinitionReply =
       ProposeFsmDefinitionReply(Some(error))

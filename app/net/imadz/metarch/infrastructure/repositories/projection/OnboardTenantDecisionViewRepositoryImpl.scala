@@ -4,9 +4,9 @@ package net.imadz.metarch.infrastructure.repositories.projection
 
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.OnboardTenantDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.OnboardTenantDecisionViewTable._
-import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,20 +22,24 @@ class OnboardTenantDecisionViewRepositoryImpl extends OnboardTenantDecisionViewR
     // ==== BEGIN MANUAL ====
     DB.localTx { implicit session =>
       sql"""INSERT INTO onboardtenantdecisionview_table
-            (`archivedAt`, `createdAt`, `createdBy`, `name`, `orgMemberIds`, `ownerUserId`, `suspendedAt`, `tenantId`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE `archivedAt` = VALUES(`archivedAt`), `createdAt` = VALUES(`createdAt`), `createdBy` = VALUES(`createdBy`), `name` = VALUES(`name`), `orgMemberIds` = VALUES(`orgMemberIds`), `ownerUserId` = VALUES(`ownerUserId`), `suspendedAt` = VALUES(`suspendedAt`)"""
+            (`archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `suspendedAt`, `tenantId`)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE `archivedAt` = VALUES(`archivedAt`), `createdAt` = VALUES(`createdAt`), `createdBy` = VALUES(`createdBy`), `name` = VALUES(`name`), `ownerUserId` = VALUES(`ownerUserId`), `suspendedAt` = VALUES(`suspendedAt`)"""
         .bind(
               (view.archivedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               (view.createdAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.createdBy,
               view.name,
-              Json.toJson(view.orgMemberIds).toString(),
               view.ownerUserId,
               (view.suspendedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.tenantId
             )
         .update.apply()
+      // 子表（列表结构化·Phase 2 R4）：同事务先删后插
+      sql"DELETE FROM `onboardtenantdecisionview_orgmemberids_table` WHERE `tenantId` = ?".bind(view.tenantId).update.apply()
+      view.orgMemberIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `onboardtenantdecisionview_orgmemberids_table` (`tenantId`, `idx`, `value`) VALUES (?, ?, ?)".bind(view.tenantId, idx, elem.toString).update.apply()
+      }
     }
     // ==== END MANUAL ====
   }
@@ -47,7 +51,7 @@ class OnboardTenantDecisionViewRepositoryImpl extends OnboardTenantDecisionViewR
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `orgMemberIds`, `ownerUserId`, `suspendedAt`, `tenantId`
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `suspendedAt`, `tenantId`
                   FROM onboardtenantdecisionview_table
                   WHERE `tenantId` = ?"""
               .bind(tenantId)
@@ -56,12 +60,18 @@ class OnboardTenantDecisionViewRepositoryImpl extends OnboardTenantDecisionViewR
                 createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
                 createdBy = rs.string("createdBy"),
                 name = rs.string("name"),
-                orgMemberIds = Json.parse(rs.string("orgMemberIds")).as[List[Id]],
+                orgMemberIds = Nil,
                 ownerUserId = rs.string("ownerUserId"),
                 suspendedAt = rs.longOpt("suspendedAt").map(java.time.Instant.ofEpochMilli),
                 tenantId = rs.string("tenantId")
               ))
-              .headOption.apply()
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                orgMemberIds = sql"SELECT `value` FROM `onboardtenantdecisionview_orgmemberids_table` WHERE `tenantId` = ? ORDER BY `idx`".bind(row.tenantId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated.headOption
           }
         }
     // ==== END MANUAL ====
@@ -74,7 +84,7 @@ class OnboardTenantDecisionViewRepositoryImpl extends OnboardTenantDecisionViewR
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `orgMemberIds`, `ownerUserId`, `suspendedAt`, `tenantId`
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `suspendedAt`, `tenantId`
                   FROM onboardtenantdecisionview_table
                   WHERE `ownerUserId` = ?"""
               .bind(ownerUserId)
@@ -83,12 +93,18 @@ class OnboardTenantDecisionViewRepositoryImpl extends OnboardTenantDecisionViewR
                 createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
                 createdBy = rs.string("createdBy"),
                 name = rs.string("name"),
-                orgMemberIds = Json.parse(rs.string("orgMemberIds")).as[List[Id]],
+                orgMemberIds = Nil,
                 ownerUserId = rs.string("ownerUserId"),
                 suspendedAt = rs.longOpt("suspendedAt").map(java.time.Instant.ofEpochMilli),
                 tenantId = rs.string("tenantId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                orgMemberIds = sql"SELECT `value` FROM `onboardtenantdecisionview_orgmemberids_table` WHERE `tenantId` = ? ORDER BY `idx`".bind(row.tenantId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -98,19 +114,109 @@ class OnboardTenantDecisionViewRepositoryImpl extends OnboardTenantDecisionViewR
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `orgMemberIds`, `ownerUserId`, `suspendedAt`, `tenantId`
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `suspendedAt`, `tenantId`
                   FROM onboardtenantdecisionview_table"""
               .map(rs => OnboardTenantDecisionView(
                 archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
                 createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
                 createdBy = rs.string("createdBy"),
                 name = rs.string("name"),
-                orgMemberIds = Json.parse(rs.string("orgMemberIds")).as[List[Id]],
+                orgMemberIds = Nil,
                 ownerUserId = rs.string("ownerUserId"),
                 suspendedAt = rs.longOpt("suspendedAt").map(java.time.Instant.ofEpochMilli),
                 tenantId = rs.string("tenantId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                orgMemberIds = sql"SELECT `value` FROM `onboardtenantdecisionview_orgmemberids_table` WHERE `tenantId` = ? ORDER BY `idx`".bind(row.tenantId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 6388c553-281f-4849-8de4-b1b8ffbaafe4@cd06d03c174b5143
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[OnboardTenantDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `suspendedAt`, `tenantId`
+                  FROM onboardtenantdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `tenantId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => OnboardTenantDecisionView(
+                archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                name = rs.string("name"),
+                orgMemberIds = Nil,
+                ownerUserId = rs.string("ownerUserId"),
+                suspendedAt = rs.longOpt("suspendedAt").map(java.time.Instant.ofEpochMilli),
+                tenantId = rs.string("tenantId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                orgMemberIds = sql"SELECT `value` FROM `onboardtenantdecisionview_orgmemberids_table` WHERE `tenantId` = ? ORDER BY `idx`".bind(row.tenantId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 6388c553-281f-4849-8de4-b1b8ffbaafe4@cd06d03c174b5143
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM onboardtenantdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param orgMemberId  @knowledge 6bcd8021-411b-4df1-a6d0-a797691184fb@436f0e9153aacff1
+   */
+  override def findByOrgMemberId(orgMemberId: String): Future[List[OnboardTenantDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `archivedAt`, `createdAt`, `createdBy`, `name`, `ownerUserId`, `suspendedAt`, `tenantId`
+                  FROM onboardtenantdecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `onboardtenantdecisionview_orgmemberids_table` WHERE `onboardtenantdecisionview_orgmemberids_table`.`tenantId` = `onboardtenantdecisionview_table`.`tenantId` AND `onboardtenantdecisionview_orgmemberids_table`.`value` = ?)"""
+              .bind(orgMemberId)
+              .map(rs => OnboardTenantDecisionView(
+                archivedAt = rs.longOpt("archivedAt").map(java.time.Instant.ofEpochMilli),
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                name = rs.string("name"),
+                orgMemberIds = Nil,
+                ownerUserId = rs.string("ownerUserId"),
+                suspendedAt = rs.longOpt("suspendedAt").map(java.time.Instant.ofEpochMilli),
+                tenantId = rs.string("tenantId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                orgMemberIds = sql"SELECT `value` FROM `onboardtenantdecisionview_orgmemberids_table` WHERE `tenantId` = ? ORDER BY `idx`".bind(row.tenantId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====

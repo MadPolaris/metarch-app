@@ -19,7 +19,7 @@ object UseCaseDefinitionBehaviors extends UseCaseDefinitionCommandHelpers {
   def apply: UseCaseDefinitionAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
 
   private def defaultBehaviors(state: UseCaseDefinitionState): PartialFunction[UseCaseDefinitionCommandFamily, Effect[UseCaseDefinitionEvent, UseCaseDefinitionState]] = {
-    case DeclareUseCaseDefinition(replyTo) =>
+    case _: DeclareUseCaseDefinition =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -30,7 +30,7 @@ object UseCaseDefinitionBehaviors extends UseCaseDefinitionCommandHelpers {
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveUseCaseDefinition(replyTo) =>
+    case _: RemoveUseCaseDefinition =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

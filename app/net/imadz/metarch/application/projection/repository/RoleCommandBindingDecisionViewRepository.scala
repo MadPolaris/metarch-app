@@ -58,5 +58,17 @@ trait RoleCommandBindingDecisionViewRepository {
   def findAll(): Future[List[RoleCommandBindingDecisionView]]
   // Logic: 查全部 RoleCommandBindingDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge afb3f087-aace-403b-bb7d-df62a3a12ec6@18d5f421b82ff6ca
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[RoleCommandBindingDecisionView]]
+  // Logic: 按 tenantId 分页查 RoleCommandBindingDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge afb3f087-aace-403b-bb7d-df62a3a12ec6@18d5f421b82ff6ca
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 RoleCommandBindingDecisionView（分页 total）
+
 }
 

@@ -21,7 +21,7 @@ object KnowledgePatchBehaviors extends KnowledgePatchCommandHelpers {
 
   private def defaultBehaviors(state: KnowledgePatchState): PartialFunction[KnowledgePatchCommandFamily, Effect[KnowledgePatchEvent, KnowledgePatchState]] = {
     case cmd: ConfirmKnowledgeReady => runReplyingPolicy(KnowledgePatchRules.ConfirmKnowledgeReadyRule, ConfirmKnowledgeReadyHelper)(state, cmd).replyWith(cmd.replyTo)
-    case ConfirmPatchMerged(replyTo) =>
+    case _: ConfirmPatchMerged =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

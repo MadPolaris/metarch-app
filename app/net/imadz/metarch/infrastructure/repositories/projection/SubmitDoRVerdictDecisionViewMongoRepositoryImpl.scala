@@ -6,17 +6,22 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.SubmitDoRVerdictDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.SubmitDoRVerdictDecisionViewTable._
 import net.imadz.metarch.domain.values.DoRVerdict
 import net.imadz.metarch.domain.values.Finding
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonArray
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scalikejdbc._
 
 /**
@@ -27,7 +32,7 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
 
   override def upsert(view: SubmitDoRVerdictDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_dor_verdicts", "dorId", view.dorId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_dor_verdicts", "dorId", view.dorId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -36,7 +41,7 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def findByIdentity(dorId: String): Future[Option[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_dor_verdicts", dorId, dorId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_dor_verdicts", dorId, dorId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -45,7 +50,7 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def findByEvaluatorId(evaluatorId: String): Future[List[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_dor_verdicts", Map("evaluatorId" -> evaluatorId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_dor_verdicts", Map("evaluatorId" -> evaluatorId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -54,7 +59,7 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def findByPatchId(patchId: String): Future[List[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_dor_verdicts", Map("patchId" -> patchId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_dor_verdicts", Map("patchId" -> patchId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -63,7 +68,7 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def findByProjectId(projectId: String): Future[List[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_dor_verdicts", Map("projectId" -> projectId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_dor_verdicts", Map("projectId" -> projectId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -72,7 +77,7 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def findByTenantId(tenantId: String): Future[List[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_dor_verdicts", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_dor_verdicts", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -81,13 +86,13 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def findByWorkshopId(workshopId: String): Future[List[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_dor_verdicts", Map("workshopId" -> workshopId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_dor_verdicts", Map("workshopId" -> workshopId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_dor_verdicts").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_dor_verdicts").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -96,7 +101,7 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[SubmitDoRVerdictDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_dor_verdicts", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_dor_verdicts", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -105,88 +110,142 @@ class SubmitDoRVerdictDecisionViewMongoRepositoryImpl @Inject() (viewStore: Mong
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_dor_verdicts").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_dor_verdicts", tenantId)
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: SubmitDoRVerdictDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "aiModelVersion" -> Json.toJson(view.aiModelVersion),
-      "blockedAt" -> view.blockedAt.map(x => JsString(x.toString)),
-      "blockedReason" -> Json.toJson(view.blockedReason),
-      "criterion" -> Json.toJson(view.criterion),
-      "description" -> Json.toJson(view.description),
-      "dorId" -> Json.toJson(view.dorId),
-      "effort" -> Json.toJson(view.effort),
-      "evaluatedAt" -> view.evaluatedAt.map(x => JsString(x.toString)),
-      "evaluatedBy" -> Json.toJson(view.evaluatedBy),
-      "evaluatedScope" -> Json.toJson(view.evaluatedScope),
-      "evaluatorId" -> Json.toJson(view.evaluatorId),
-      "evaluatorRole" -> Json.toJson(view.evaluatorRole),
-      "evaluatorType" -> Json.toJson(view.evaluatorType),
-      "evidenceLinks" -> Json.toJson(view.evidenceLinks),
-      "findings" -> Json.toJson(view.findings),
-      "harnessBrand" -> Json.toJson(view.harnessBrand),
-      "harnessVersion" -> Json.toJson(view.harnessVersion),
-      "knowledgeSnapshot" -> Json.toJson(view.knowledgeSnapshot),
-      "passedAt" -> view.passedAt.map(x => JsString(x.toString)),
-      "patchId" -> Json.toJson(view.patchId),
-      "projectId" -> Json.toJson(view.projectId),
-      "reason" -> Json.toJson(view.reason),
-      "recordedAt" -> view.recordedAt.map(x => JsString(x.toString)),
-      "recordedBy" -> Json.toJson(view.recordedBy),
-      "result" -> Json.toJson(view.result),
-      "scopeSnapshot" -> Json.toJson(view.scopeSnapshot),
-      "severity" -> Json.toJson(view.severity),
-      "status" -> Json.toJson(view.status),
-      "summary" -> Json.toJson(view.summary),
-      "targetSessionIds" -> Json.toJson(view.targetSessionIds),
-      "tenantId" -> Json.toJson(view.tenantId),
-      "verdicts" -> Json.toJson(view.verdicts),
-      "workshopId" -> Json.toJson(view.workshopId)))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: SubmitDoRVerdictDecisionView): Document =
+    Document(
+      "aiModelVersion" -> bsonStr(view.aiModelVersion),
+      "blockedAt" -> (view.blockedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "blockedReason" -> bsonStr(view.blockedReason),
+      "criterion" -> bsonStr(view.criterion),
+      "description" -> bsonStr(view.description),
+      "dorId" -> bsonStr(view.dorId),
+      "effort" -> bsonStr(view.effort),
+      "evaluatedAt" -> (view.evaluatedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "evaluatedBy" -> bsonStr(view.evaluatedBy),
+      "evaluatedScope" -> bsonStr(view.evaluatedScope),
+      "evaluatorId" -> bsonStr(view.evaluatorId),
+      "evaluatorRole" -> bsonStr(view.evaluatorRole),
+      "evaluatorType" -> bsonStr(view.evaluatorType),
+      "evidenceLinks" -> BsonArray(view.evidenceLinks.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "findings" -> BsonArray(view.findings.map(elem => (findingToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "harnessBrand" -> bsonStr(view.harnessBrand),
+      "harnessVersion" -> bsonStr(view.harnessVersion),
+      "knowledgeSnapshot" -> bsonStr(view.knowledgeSnapshot),
+      "passedAt" -> (view.passedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "patchId" -> bsonStr(view.patchId),
+      "projectId" -> bsonStr(view.projectId),
+      "reason" -> bsonStr(view.reason),
+      "recordedAt" -> (view.recordedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "recordedBy" -> bsonStr(view.recordedBy),
+      "result" -> bsonStr(view.result),
+      "scopeSnapshot" -> bsonStr(view.scopeSnapshot),
+      "severity" -> bsonStr(view.severity),
+      "status" -> bsonStr(view.status),
+      "summary" -> bsonStr(view.summary),
+      "targetSessionIds" -> BsonArray(view.targetSessionIds.map(elem => (((if (elem == null) BsonNull() else BsonString(elem.toString)): org.mongodb.scala.bson.BsonValue): org.mongodb.scala.bson.BsonValue))),
+      "tenantId" -> bsonStr(view.tenantId),
+      "verdicts" -> BsonArray(view.verdicts.map(elem => (doRVerdictToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "workshopId" -> bsonStr(view.workshopId))
 
-  /** JSON 串 → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
-    * guards 型全表 500 事故的 Mongo 路免疫面；对照 store 侧 docsToJsons 只挡 toJson 失败，本层挡字段级 decode 失败） */
-  private def safeRowToView(json: String): Option[SubmitDoRVerdictDecisionView] =
-    scala.util.Try(rowToView(json)).toOption
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
-  private def rowToView(json: String): SubmitDoRVerdictDecisionView = {
-    val v = play.api.libs.json.Json.parse(json)
-    SubmitDoRVerdictDecisionView(
-      aiModelVersion = (v \ "aiModelVersion").as[String],
-      blockedAt = (v \ "blockedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "blockedAt").asOpt[String].map(java.time.Instant.parse)),
-      blockedReason = (v \ "blockedReason").as[String],
-      criterion = (v \ "criterion").as[String],
-      description = (v \ "description").as[String],
-      dorId = (v \ "dorId").as[String],
-      effort = (v \ "effort").as[String],
-      evaluatedAt = (v \ "evaluatedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "evaluatedAt").asOpt[String].map(java.time.Instant.parse)),
-      evaluatedBy = (v \ "evaluatedBy").as[String],
-      evaluatedScope = (v \ "evaluatedScope").as[String],
-      evaluatorId = (v \ "evaluatorId").as[String],
-      evaluatorRole = (v \ "evaluatorRole").as[String],
-      evaluatorType = (v \ "evaluatorType").as[String],
-      evidenceLinks = (v \ "evidenceLinks").asOpt[List[String]].getOrElse(Nil),
-      findings = (v \ "findings").asOpt[List[Finding]].getOrElse(Nil),
-      harnessBrand = (v \ "harnessBrand").as[String],
-      harnessVersion = (v \ "harnessVersion").as[String],
-      knowledgeSnapshot = (v \ "knowledgeSnapshot").as[String],
-      passedAt = (v \ "passedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "passedAt").asOpt[String].map(java.time.Instant.parse)),
-      patchId = (v \ "patchId").as[String],
-      projectId = (v \ "projectId").as[String],
-      reason = (v \ "reason").as[String],
-      recordedAt = (v \ "recordedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "recordedAt").asOpt[String].map(java.time.Instant.parse)),
-      recordedBy = (v \ "recordedBy").as[String],
-      result = (v \ "result").as[String],
-      scopeSnapshot = (v \ "scopeSnapshot").as[String],
-      severity = (v \ "severity").as[String],
-      status = (v \ "status").as[String],
-      summary = (v \ "summary").as[String],
-      targetSessionIds = (v \ "targetSessionIds").asOpt[List[Id]].getOrElse(Nil),
-      tenantId = (v \ "tenantId").as[String],
-      verdicts = (v \ "verdicts").asOpt[List[DoRVerdict]].getOrElse(Nil),
-      workshopId = (v \ "workshopId").as[String])
-  }
+  /** Document → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
+    * guards 型全表 500 事故的 Mongo 路免疫面；本层挡字段级 decode 失败） */
+  private def safeRowToView(doc: Document): Option[SubmitDoRVerdictDecisionView] =
+    scala.util.Try(rowFromDocument(doc)).toOption
+
+  private def rowFromDocument(doc: Document): SubmitDoRVerdictDecisionView = SubmitDoRVerdictDecisionView(
+      aiModelVersion = doc("aiModelVersion").asString().getValue,
+      blockedAt = doc.get("blockedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      blockedReason = doc("blockedReason").asString().getValue,
+      criterion = doc("criterion").asString().getValue,
+      description = doc("description").asString().getValue,
+      dorId = doc("dorId").asString().getValue,
+      effort = doc("effort").asString().getValue,
+      evaluatedAt = doc.get("evaluatedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      evaluatedBy = doc("evaluatedBy").asString().getValue,
+      evaluatedScope = doc("evaluatedScope").asString().getValue,
+      evaluatorId = doc("evaluatorId").asString().getValue,
+      evaluatorRole = doc("evaluatorRole").asString().getValue,
+      evaluatorType = doc("evaluatorType").asString().getValue,
+      evidenceLinks = doc.get("evidenceLinks") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      findings = doc.get("findings") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => findingFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      harnessBrand = doc("harnessBrand").asString().getValue,
+      harnessVersion = doc("harnessVersion").asString().getValue,
+      knowledgeSnapshot = doc("knowledgeSnapshot").asString().getValue,
+      passedAt = doc.get("passedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      patchId = doc("patchId").asString().getValue,
+      projectId = doc("projectId").asString().getValue,
+      reason = doc("reason").asString().getValue,
+      recordedAt = doc.get("recordedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      recordedBy = doc("recordedBy").asString().getValue,
+      result = doc("result").asString().getValue,
+      scopeSnapshot = doc("scopeSnapshot").asString().getValue,
+      severity = doc("severity").asString().getValue,
+      status = doc("status").asString().getValue,
+      summary = doc("summary").asString().getValue,
+      targetSessionIds = doc.get("targetSessionIds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => Id.of(elem.asString().getValue)).toList; case _ => Nil },
+      tenantId = doc("tenantId").asString().getValue,
+      verdicts = doc.get("verdicts") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => doRVerdictFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      workshopId = doc("workshopId").asString().getValue)
+
+  private def findingToDocument(v: Finding): Document =
+    Document(
+      "criterion" -> bsonStr(v.criterion),
+      "description" -> bsonStr(v.description),
+      "severity" -> bsonStr(v.severity),
+      "sessionId" -> bsonStr(v.sessionId),
+      "proposal" -> bsonStr(v.proposal))
+
+  private def findingFromDocument(doc: Document): Finding = Finding(
+      criterion = doc("criterion").asString().getValue,
+      description = doc("description").asString().getValue,
+      severity = doc("severity").asString().getValue,
+      sessionId = doc("sessionId").asString().getValue,
+      proposal = doc("proposal").asString().getValue)
+
+  private def doRVerdictToDocument(v: DoRVerdict): Document =
+    Document(
+      "criterion" -> bsonStr(v.criterion),
+      "evaluatorType" -> bsonStr(v.evaluatorType),
+      "evaluatorId" -> bsonStr(v.evaluatorId),
+      "evaluatorRole" -> bsonStr(v.evaluatorRole),
+      "aiModelVersion" -> bsonStr(v.aiModelVersion),
+      "harnessBrand" -> bsonStr(v.harnessBrand),
+      "harnessVersion" -> bsonStr(v.harnessVersion),
+      "effort" -> bsonStr(v.effort),
+      "result" -> bsonStr(v.result),
+      "reason" -> bsonStr(v.reason),
+      "evidenceLinks" -> BsonArray(v.evidenceLinks.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "recordedAt" -> BsonDateTime(v.recordedAt.toEpochMilli),
+      "recordedBy" -> bsonStr(v.recordedBy),
+      "evaluatedScope" -> bsonStr(v.evaluatedScope),
+      "summary" -> bsonStr(v.summary),
+      "sessionId" -> bsonStr(v.sessionId),
+      "proposal" -> bsonStr(v.proposal))
+
+  private def doRVerdictFromDocument(doc: Document): DoRVerdict = DoRVerdict(
+      criterion = doc("criterion").asString().getValue,
+      evaluatorType = doc("evaluatorType").asString().getValue,
+      evaluatorId = doc("evaluatorId").asString().getValue,
+      evaluatorRole = doc("evaluatorRole").asString().getValue,
+      aiModelVersion = doc("aiModelVersion").asString().getValue,
+      harnessBrand = doc("harnessBrand").asString().getValue,
+      harnessVersion = doc("harnessVersion").asString().getValue,
+      effort = doc("effort").asString().getValue,
+      result = doc("result").asString().getValue,
+      reason = doc("reason").asString().getValue,
+      evidenceLinks = doc.get("evidenceLinks") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      recordedAt = doc("recordedAt") match { case v if v.isDateTime => java.time.Instant.ofEpochMilli(v.asDateTime().getValue); case v if v.isInt64 => java.time.Instant.ofEpochMilli(v.asInt64().getValue); case v if v.isString => java.time.Instant.parse(v.asString().getValue) },
+      recordedBy = doc("recordedBy").asString().getValue,
+      evaluatedScope = doc("evaluatedScope").asString().getValue,
+      summary = doc("summary").asString().getValue,
+      sessionId = doc("sessionId").asString().getValue,
+      proposal = doc("proposal").asString().getValue)
 
 }

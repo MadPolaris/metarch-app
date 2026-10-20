@@ -8,6 +8,7 @@ import net.imadz.metarch.application.aggregates.ModelCatalogProtocol._
 import net.imadz.metarch.domain.entities.ModelCatalogEntity.ModelCatalogEvent
 import net.imadz.metarch.domain.entities.ModelCatalogEntity.ModelCatalogState
 import net.imadz.metarch.domain.invariant.ModelCatalogRules
+import net.imadz.metarch.domain.service.ConceptDeltaAdjudicator
 
 /**
  * ModelCatalog 命令流接线（rules_domain_gen.mjs 生成，2026-08-22）：
@@ -17,10 +18,13 @@ import net.imadz.metarch.domain.invariant.ModelCatalogRules
 object ModelCatalogBehaviors extends ModelCatalogCommandHelpers {
 
   type ModelCatalogAggregateCommandHandler = (ModelCatalogState, ModelCatalogCommandFamily) => Effect[ModelCatalogEvent, ModelCatalogState]
-  def apply: ModelCatalogAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
+  // 债④（2026-10-04·闭包形）：port 注入重载——装配点（Bootstrap）传手写实现，闭包捕获不可变。
+  def apply(adjudicator: ConceptDeltaAdjudicator): ModelCatalogAggregateCommandHandler = { require(adjudicator != null, "adjudicator 未绑定");
+    (state, command) => defaultBehaviors(state, adjudicator).apply(command)
+  }
 
-  private def defaultBehaviors(state: ModelCatalogState): PartialFunction[ModelCatalogCommandFamily, Effect[ModelCatalogEvent, ModelCatalogState]] = {
-    case cmd: ApplyKnowledgePatch => runReplyingPolicy(ModelCatalogRules.ApplyKnowledgePatchRule, ApplyKnowledgePatchHelper)(state, cmd).replyWith(cmd.replyTo)
+  private def defaultBehaviors(state: ModelCatalogState, adjudicator: ConceptDeltaAdjudicator): PartialFunction[ModelCatalogCommandFamily, Effect[ModelCatalogEvent, ModelCatalogState]] = {
+    case cmd: ApplyKnowledgePatch => runReplyingPolicy(new ModelCatalogRules.ApplyKnowledgePatchRule(adjudicator), ApplyKnowledgePatchHelper)(state, cmd).replyWith(cmd.replyTo)
     case cmd: AssembleMetadata => runReplyingPolicy(ModelCatalogRules.AssembleMetadataRule, AssembleMetadataHelper)(state, cmd).replyWith(cmd.replyTo)
     case cmd: CreateCatalogVersion => runReplyingPolicy(ModelCatalogRules.CreateCatalogVersionRule, CreateCatalogVersionHelper)(state, cmd).replyWith(cmd.replyTo)
     case cmd: DetectCatalogConflicts => runReplyingPolicy(ModelCatalogRules.DetectCatalogConflictsRule, DetectCatalogConflictsHelper)(state, cmd).replyWith(cmd.replyTo)

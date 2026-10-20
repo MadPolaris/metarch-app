@@ -3,7 +3,9 @@
 package net.imadz.metarch.application.projection.repository
 
 import com.google.inject.ImplementedBy
+import java.time.Instant
 import javax.inject.Inject
+import net.imadz.common.CommonTypes.Id
 import net.imadz.metarch.infrastructure.repositories.projection.CatalogGraphViewRepositoryImpl
 import scala.collection.immutable.Map
 
@@ -24,7 +26,7 @@ object CatalogGraphViewTable {
  * @param tenantId 租户戳  @knowledge b957b0ae-6800-4bc1-9661-7672f2a98c96@3a0070f49ae0d8fe
  * @param version 版本号  @knowledge 485b4c53-882a-450a-a060-a8194b2e5370@1b8e4f34f2ebbb0e
  */
-case class CatalogGraphView(assembledAt: String, baseVersion: String, catalogId: String, exportedAt: String, hasConflictWarning: String, lastPatchSessionId: String, lastPatchedAt: String, manifestBytes: String, manifestSha256: String, projectId: String, releasedAt: String, status: String, tenantId: String, version: String) {
+case class CatalogGraphView(assembledAt: Option[Instant], baseVersion: String, catalogId: Id, exportedAt: Option[Instant], hasConflictWarning: Boolean, lastPatchSessionId: Id, lastPatchedAt: Option[Instant], manifestBytes: String, manifestSha256: String, projectId: Id, releasedAt: Option[Instant], status: String, tenantId: Id, version: String) {
 
 }
 }
@@ -39,10 +41,10 @@ trait CatalogGraphViewRepository {
 
   import CatalogGraphViewTable._
 
-  def upsertNode(key: String, props: Map[String, String]): Unit
+  def upsertNode(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点 MERGE 写侧（Catalog·kn: 空间前缀键）
 
-  def updateNodeProps(key: String, props: Map[String, String]): Unit
+  def updateNodeProps(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点属性 SET（Catalog）
 
   def deleteNode(key: String, tenantId: String): Unit

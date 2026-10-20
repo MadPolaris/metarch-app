@@ -17,9 +17,9 @@ object UseCaseDefinitionDecisionViewTable {
  * @param declaredAt declaredAt 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge 96741182-b70f-4847-ba9d-76d69989b5ee@d6632df49b9a4a77
  * @param declaredBy declaredBy 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge cf51bb50-ecc2-422c-815f-6b7ca0a0c51a@049dcda3d5f313e0
  * @param definitionId definitionId 字段（UseCaseDefinitionDecisionView·标识键·立项B）  @knowledge 86793e8a-71fa-4220-a107-7abe9cc6c807@34328d37b6f81ccc
- * @param extensionsJson extensionsJson 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge 54a25128-b13c-4638-bc02-5b0490a13a73@ac5e99fc40432631
+ * @param extensionsJson extensionsJson 字段（UseCaseDefinitionDecisionView·立项B） [opaque: 裁决保留的原文载荷·不展开]  @knowledge 54a25128-b13c-4638-bc02-5b0490a13a73@ac5e99fc40432631
  * @param generatedIds generatedIds 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge 51252153-dc47-4292-a1c4-6519a17b63fa@785885b8632630ae
- * @param mainFlowJson mainFlowJson 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge fc4e204f-ce53-4b2d-bdb8-473959677278@822c5dc6a93e01b2
+ * @param mainFlowJson mainFlowJson 字段（UseCaseDefinitionDecisionView·立项B） [opaque: 裁决保留的原文载荷·不展开]  @knowledge fc4e204f-ce53-4b2d-bdb8-473959677278@822c5dc6a93e01b2
  * @param optionalInputs optionalInputs 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge d19a701a-9b67-458d-bcf4-e3bdb7864796@b01120390ff27c83
  * @param orchestrationType orchestrationType 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge cba3b2c2-5dae-44a8-8430-1d2c816d66ed@74d92e6df332070c
  * @param postconditions postconditions 字段（UseCaseDefinitionDecisionView·立项B）  @knowledge 19e94086-fb83-4586-8535-53437abf111d@87015fe4db523cc8

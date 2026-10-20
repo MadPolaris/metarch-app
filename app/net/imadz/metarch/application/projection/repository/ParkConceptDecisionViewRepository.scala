@@ -14,7 +14,7 @@ import scala.concurrent.Future
 object ParkConceptDecisionViewTable {
 /**
  * @param conceptId 聚合标识（conceptId）  @knowledge 4053db5f-05f6-4af1-ae3a-91b924cb2cde@110375d1f4f8fcc1
- * @param condition 守卫条件  @knowledge 2512ba5c-4d5e-407f-813b-04c1f1cc6b78@ba7cb5c8ce8155a8
+ * @param condition 守卫条件 [opaque: 裁决保留的原文载荷·不展开]  @knowledge 2512ba5c-4d5e-407f-813b-04c1f1cc6b78@ba7cb5c8ce8155a8
  * @param contextId 所属上下文  @knowledge b74b87d7-bc5a-47d5-b919-6ae70070ed4b@dfb51418a5bf50aa
  * @param createdAt 创建时间  @knowledge 2473b2f8-64f7-4f43-b806-dc2572f3eb4d@c85adb38aa03d07a
  * @param createdBy 创建人  @knowledge f9511322-3a10-45d7-b924-812200350e1b@d36e0bd05e0b95ed
@@ -24,9 +24,9 @@ object ParkConceptDecisionViewTable {
  * @param establishedBy 确立人  @knowledge ec478cfe-9cb2-458a-ad18-08743cd2ee1a@3ff3d924b90c7b53
  * @param hasConflictWarning 冲突警告  @knowledge 85ef1795-0972-444b-befa-0bb8f8bd9677@bbdaef997f898903
  * @param kind DDD 类型  @knowledge 0b8304ed-1818-4a14-af0d-5b7c45c57535@0033e1d8d99c4cdb
- * @param machineSpec 机器规格  @knowledge b449e9ec-c5e9-4dc6-9360-1761a210a4e6@9e13e5d9ef25161e
- * @param mapping 数据映射  @knowledge 69696d13-c820-4f56-8a29-72b95a16460c@b68d91e98b1e6968
- * @param metadata 扩展属性  @knowledge 33aec868-6471-495c-a39f-e32aea18f4e7@4f7c15c963b07956
+ * @param machineSpec 机器规格 [opaque: 裁决保留的原文载荷·不展开]  @knowledge b449e9ec-c5e9-4dc6-9360-1761a210a4e6@9e13e5d9ef25161e
+ * @param mapping 数据映射 [opaque: 裁决保留的原文载荷·不展开]  @knowledge 69696d13-c820-4f56-8a29-72b95a16460c@b68d91e98b1e6968
+ * @param metadata 扩展属性 [opaque: 裁决保留的原文载荷·不展开]  @knowledge 33aec868-6471-495c-a39f-e32aea18f4e7@4f7c15c963b07956
  * @param modifiedAt 最近修改时间  @knowledge a1bdbbe0-17e4-4c8a-a218-493235d173c5@cad00a5c50c3e4df
  * @param modifiedBy 最近修改人  @knowledge 788395e3-f942-4b45-bba4-c1872a3d7258@27d836d2156df9d5
  * @param name 标准术语  @knowledge 8cad7312-b47a-42a7-b8bd-803decef5e21@38e8b995869884b8

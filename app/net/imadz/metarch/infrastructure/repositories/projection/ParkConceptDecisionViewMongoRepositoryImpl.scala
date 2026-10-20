@@ -6,16 +6,22 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.ParkConceptDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.ParkConceptDecisionViewTable._
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsNull
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonArray
+import org.mongodb.scala.bson.BsonBoolean
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonInt32
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scalikejdbc._
 
 /**
@@ -26,7 +32,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
 
   override def upsert(view: ParkConceptDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_park_concepts", "conceptId", view.conceptId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_park_concepts", "conceptId", view.conceptId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -36,7 +42,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findByIdentity(conceptId: String, edgeId: String): Future[Option[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_park_concepts", "conceptId", conceptId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_park_concepts", "conceptId", conceptId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -45,7 +51,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findByConceptId(conceptId: String): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_park_concepts", Map("conceptId" -> conceptId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_park_concepts", Map("conceptId" -> conceptId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -54,7 +60,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findByContextId(contextId: String): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_park_concepts", Map("contextId" -> contextId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_park_concepts", Map("contextId" -> contextId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -63,7 +69,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findByEdgeId(edgeId: String): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_park_concepts", Map("edgeId" -> edgeId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_park_concepts", Map("edgeId" -> edgeId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -72,7 +78,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findBySourceId(sourceId: String): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_park_concepts", Map("sourceId" -> sourceId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_park_concepts", Map("sourceId" -> sourceId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -81,7 +87,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findBySourceSessionId(sourceSessionId: String): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_park_concepts", Map("sourceSessionId" -> sourceSessionId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_park_concepts", Map("sourceSessionId" -> sourceSessionId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -90,7 +96,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findByTargetId(targetId: String): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_park_concepts", Map("targetId" -> targetId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_park_concepts", Map("targetId" -> targetId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -99,13 +105,13 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findByTenantId(tenantId: String): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_park_concepts", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_park_concepts", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_park_concepts").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_park_concepts").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -114,7 +120,7 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ParkConceptDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_park_concepts", tenantId, limit, offset, Map.empty).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_park_concepts", tenantId, limit, offset, Map.empty).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -123,82 +129,82 @@ class ParkConceptDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoView
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_park_concepts").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_park_concepts", tenantId)
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: ParkConceptDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "conceptId" -> (if (view.conceptId == null) JsNull else Json.toJson(view.conceptId)),
-      "condition" -> Json.toJson(view.condition),
-      "contextId" -> Json.toJson(view.contextId),
-      "createdAt" -> view.createdAt.map(x => JsString(x.toString)),
-      "createdBy" -> Json.toJson(view.createdBy),
-      "description" -> Json.toJson(view.description),
-      "edgeId" -> (if (view.edgeId == null) JsNull else Json.toJson(view.edgeId)),
-      "establishedAt" -> view.establishedAt.map(x => JsString(x.toString)),
-      "establishedBy" -> Json.toJson(view.establishedBy),
-      "hasConflictWarning" -> Json.toJson(view.hasConflictWarning),
-      "kind" -> Json.toJson(view.kind),
-      "machineSpec" -> Json.toJson(view.machineSpec),
-      "mapping" -> Json.toJson(view.mapping),
-      "metadata" -> Json.toJson(view.metadata),
-      "modifiedAt" -> view.modifiedAt.map(x => JsString(x.toString)),
-      "modifiedBy" -> Json.toJson(view.modifiedBy),
-      "name" -> Json.toJson(view.name),
-      "order" -> Json.toJson(view.order),
-      "parkedAt" -> view.parkedAt.map(x => JsString(x.toString)),
-      "parkedBy" -> Json.toJson(view.parkedBy),
-      "relationType" -> Json.toJson(view.relationType),
-      "removedAt" -> view.removedAt.map(x => JsString(x.toString)),
-      "removedBy" -> Json.toJson(view.removedBy),
-      "sourceId" -> (if (view.sourceId == null) JsNull else Json.toJson(view.sourceId)),
-      "sourceNoteIds" -> Json.toJson(view.sourceNoteIds),
-      "sourceSessionId" -> Json.toJson(view.sourceSessionId),
-      "sourceStage" -> Json.toJson(view.sourceStage),
-      "targetId" -> (if (view.targetId == null) JsNull else Json.toJson(view.targetId)),
-      "tenantId" -> Json.toJson(view.tenantId),
-      "version" -> Json.toJson(view.version)))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: ParkConceptDecisionView): Document =
+    Document(
+      "conceptId" -> ((if (view.conceptId == null) BsonNull() else BsonString(view.conceptId.toString)): org.mongodb.scala.bson.BsonValue),
+      "condition" -> bsonStr(view.condition),
+      "contextId" -> bsonStr(view.contextId),
+      "createdAt" -> (view.createdAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "createdBy" -> bsonStr(view.createdBy),
+      "description" -> bsonStr(view.description),
+      "edgeId" -> ((if (view.edgeId == null) BsonNull() else BsonString(view.edgeId.toString)): org.mongodb.scala.bson.BsonValue),
+      "establishedAt" -> (view.establishedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "establishedBy" -> bsonStr(view.establishedBy),
+      "hasConflictWarning" -> BsonBoolean(view.hasConflictWarning),
+      "kind" -> bsonStr(view.kind),
+      "machineSpec" -> bsonStr(view.machineSpec),
+      "mapping" -> bsonStr(view.mapping),
+      "metadata" -> bsonStr(view.metadata),
+      "modifiedAt" -> (view.modifiedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "modifiedBy" -> bsonStr(view.modifiedBy),
+      "name" -> bsonStr(view.name),
+      "order" -> BsonInt32(view.order),
+      "parkedAt" -> (view.parkedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "parkedBy" -> bsonStr(view.parkedBy),
+      "relationType" -> bsonStr(view.relationType),
+      "removedAt" -> (view.removedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "removedBy" -> bsonStr(view.removedBy),
+      "sourceId" -> ((if (view.sourceId == null) BsonNull() else BsonString(view.sourceId.toString)): org.mongodb.scala.bson.BsonValue),
+      "sourceNoteIds" -> BsonArray(view.sourceNoteIds.map(elem => (((if (elem == null) BsonNull() else BsonString(elem.toString)): org.mongodb.scala.bson.BsonValue): org.mongodb.scala.bson.BsonValue))),
+      "sourceSessionId" -> bsonStr(view.sourceSessionId),
+      "sourceStage" -> bsonStr(view.sourceStage),
+      "targetId" -> ((if (view.targetId == null) BsonNull() else BsonString(view.targetId.toString)): org.mongodb.scala.bson.BsonValue),
+      "tenantId" -> bsonStr(view.tenantId),
+      "version" -> BsonInt32(view.version))
 
-  /** JSON 串 → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
-    * guards 型全表 500 事故的 Mongo 路免疫面；对照 store 侧 docsToJsons 只挡 toJson 失败，本层挡字段级 decode 失败） */
-  private def safeRowToView(json: String): Option[ParkConceptDecisionView] =
-    scala.util.Try(rowToView(json)).toOption
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
-  private def rowToView(json: String): ParkConceptDecisionView = {
-    val v = play.api.libs.json.Json.parse(json)
-    ParkConceptDecisionView(
-      conceptId = (v \ "conceptId").asOpt[Id].getOrElse(null),
-      condition = (v \ "condition").as[String],
-      contextId = (v \ "contextId").as[String],
-      createdAt = (v \ "createdAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "createdAt").asOpt[String].map(java.time.Instant.parse)),
-      createdBy = (v \ "createdBy").as[String],
-      description = (v \ "description").as[String],
-      edgeId = (v \ "edgeId").asOpt[Id].getOrElse(null),
-      establishedAt = (v \ "establishedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "establishedAt").asOpt[String].map(java.time.Instant.parse)),
-      establishedBy = (v \ "establishedBy").as[String],
-      hasConflictWarning = (v \ "hasConflictWarning").as[Boolean],
-      kind = (v \ "kind").as[String],
-      machineSpec = (v \ "machineSpec").as[String],
-      mapping = (v \ "mapping").as[String],
-      metadata = (v \ "metadata").as[String],
-      modifiedAt = (v \ "modifiedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "modifiedAt").asOpt[String].map(java.time.Instant.parse)),
-      modifiedBy = (v \ "modifiedBy").as[String],
-      name = (v \ "name").as[String],
-      order = (v \ "order").as[Int],
-      parkedAt = (v \ "parkedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "parkedAt").asOpt[String].map(java.time.Instant.parse)),
-      parkedBy = (v \ "parkedBy").as[String],
-      relationType = (v \ "relationType").as[String],
-      removedAt = (v \ "removedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "removedAt").asOpt[String].map(java.time.Instant.parse)),
-      removedBy = (v \ "removedBy").as[String],
-      sourceId = (v \ "sourceId").asOpt[Id].getOrElse(null),
-      sourceNoteIds = (v \ "sourceNoteIds").asOpt[List[Id]].getOrElse(Nil),
-      sourceSessionId = (v \ "sourceSessionId").as[String],
-      sourceStage = (v \ "sourceStage").as[String],
-      targetId = (v \ "targetId").asOpt[Id].getOrElse(null),
-      tenantId = (v \ "tenantId").as[String],
-      version = (v \ "version").as[Int])
-  }
+  /** Document → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
+    * guards 型全表 500 事故的 Mongo 路免疫面；本层挡字段级 decode 失败） */
+  private def safeRowToView(doc: Document): Option[ParkConceptDecisionView] =
+    scala.util.Try(rowFromDocument(doc)).toOption
+
+  private def rowFromDocument(doc: Document): ParkConceptDecisionView = ParkConceptDecisionView(
+      conceptId = doc.get("conceptId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      condition = doc("condition").asString().getValue,
+      contextId = doc("contextId").asString().getValue,
+      createdAt = doc.get("createdAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      createdBy = doc("createdBy").asString().getValue,
+      description = doc("description").asString().getValue,
+      edgeId = doc.get("edgeId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      establishedAt = doc.get("establishedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      establishedBy = doc("establishedBy").asString().getValue,
+      hasConflictWarning = doc("hasConflictWarning").asBoolean().getValue,
+      kind = doc("kind").asString().getValue,
+      machineSpec = doc("machineSpec").asString().getValue,
+      mapping = doc("mapping").asString().getValue,
+      metadata = doc("metadata").asString().getValue,
+      modifiedAt = doc.get("modifiedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      modifiedBy = doc("modifiedBy").asString().getValue,
+      name = doc("name").asString().getValue,
+      order = doc("order").asInt32().getValue,
+      parkedAt = doc.get("parkedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      parkedBy = doc("parkedBy").asString().getValue,
+      relationType = doc("relationType").asString().getValue,
+      removedAt = doc.get("removedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      removedBy = doc("removedBy").asString().getValue,
+      sourceId = doc.get("sourceId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      sourceNoteIds = doc.get("sourceNoteIds") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => Id.of(elem.asString().getValue)).toList; case _ => Nil },
+      sourceSessionId = doc("sourceSessionId").asString().getValue,
+      sourceStage = doc("sourceStage").asString().getValue,
+      targetId = doc.get("targetId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      tenantId = doc("tenantId").asString().getValue,
+      version = doc("version").asInt32().getValue)
 
 }

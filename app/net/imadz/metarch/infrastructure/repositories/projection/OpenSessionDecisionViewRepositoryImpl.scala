@@ -4,10 +4,10 @@ package net.imadz.metarch.infrastructure.repositories.projection
 
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.OpenSessionDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.OpenSessionDecisionViewTable._
 import net.imadz.metarch.domain.values.ParticipantRole
-import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -23,19 +23,16 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
     // ==== BEGIN MANUAL ====
     DB.localTx { implicit session =>
       sql"""INSERT INTO opensessiondecisionview_table
-            (`activatedAt`, `approvedAt`, `closedAt`, `name`, `observerUserIds`, `openedAt`, `order`, `participantRoles`, `participantUserIds`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE `activatedAt` = VALUES(`activatedAt`), `approvedAt` = VALUES(`approvedAt`), `closedAt` = VALUES(`closedAt`), `name` = VALUES(`name`), `observerUserIds` = VALUES(`observerUserIds`), `openedAt` = VALUES(`openedAt`), `order` = VALUES(`order`), `participantRoles` = VALUES(`participantRoles`), `participantUserIds` = VALUES(`participantUserIds`), `preparedAt` = VALUES(`preparedAt`), `rejectedAt` = VALUES(`rejectedAt`), `rejectionReason` = VALUES(`rejectionReason`), `tenantId` = VALUES(`tenantId`), `workshopId` = VALUES(`workshopId`)"""
+            (`activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE `activatedAt` = VALUES(`activatedAt`), `approvedAt` = VALUES(`approvedAt`), `closedAt` = VALUES(`closedAt`), `name` = VALUES(`name`), `openedAt` = VALUES(`openedAt`), `order` = VALUES(`order`), `preparedAt` = VALUES(`preparedAt`), `rejectedAt` = VALUES(`rejectedAt`), `rejectionReason` = VALUES(`rejectionReason`), `tenantId` = VALUES(`tenantId`), `workshopId` = VALUES(`workshopId`)"""
         .bind(
               (view.activatedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               (view.approvedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               (view.closedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.name,
-              Json.toJson(view.observerUserIds).toString(),
               (view.openedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.order,
-              Json.toJson(view.participantRoles).toString(),
-              Json.toJson(view.participantUserIds).toString(),
               (view.preparedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               (view.rejectedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.rejectionReason,
@@ -45,6 +42,19 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
               view.workshopId
             )
         .update.apply()
+      // 子表（列表结构化·Phase 2 R4）：同事务先删后插
+      sql"DELETE FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ?".bind(view.sessionId, view.stageId).update.apply()
+      view.observerUserIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `opensessiondecisionview_observeruserids_table` (`sessionId`, `stageId`, `idx`, `value`) VALUES (?, ?, ?, ?)".bind(view.sessionId, view.stageId, idx, elem.toString).update.apply()
+      }
+      sql"DELETE FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ?".bind(view.sessionId, view.stageId).update.apply()
+      view.participantRoles.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `opensessiondecisionview_participantroles_table` (`sessionId`, `stageId`, `idx`, `userId`, `role`) VALUES (?, ?, ?, ?, ?)".bind(view.sessionId, view.stageId, idx, elem.userId.toString, elem.role).update.apply()
+      }
+      sql"DELETE FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ?".bind(view.sessionId, view.stageId).update.apply()
+      view.participantUserIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `opensessiondecisionview_participantuserids_table` (`sessionId`, `stageId`, `idx`, `value`) VALUES (?, ?, ?, ?)".bind(view.sessionId, view.stageId, idx, elem.toString).update.apply()
+      }
     }
     // ==== END MANUAL ====
   }
@@ -57,7 +67,7 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `observerUserIds`, `openedAt`, `order`, `participantRoles`, `participantUserIds`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
                   FROM opensessiondecisionview_table
                   WHERE `sessionId` = ? AND `stageId` = ?"""
               .bind(sessionId, stageId)
@@ -66,11 +76,11 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
                 closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
                 name = rs.string("name"),
-                observerUserIds = Json.parse(rs.string("observerUserIds")).as[List[Id]],
+                observerUserIds = Nil,
                 openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
                 order = rs.int("order"),
-                participantRoles = Json.parse(rs.string("participantRoles")).as[List[ParticipantRole]],
-                participantUserIds = Json.parse(rs.string("participantUserIds")).as[List[Id]],
+                participantRoles = Nil,
+                participantUserIds = Nil,
                 preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
                 rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
                 rejectionReason = rs.string("rejectionReason"),
@@ -79,7 +89,15 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 tenantId = rs.string("tenantId"),
                 workshopId = rs.string("workshopId")
               ))
-              .headOption.apply()
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated.headOption
           }
         }
     // ==== END MANUAL ====
@@ -92,7 +110,7 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `observerUserIds`, `openedAt`, `order`, `participantRoles`, `participantUserIds`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
                   FROM opensessiondecisionview_table
                   WHERE `sessionId` = ?"""
               .bind(sessionId)
@@ -101,11 +119,11 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
                 closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
                 name = rs.string("name"),
-                observerUserIds = Json.parse(rs.string("observerUserIds")).as[List[Id]],
+                observerUserIds = Nil,
                 openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
                 order = rs.int("order"),
-                participantRoles = Json.parse(rs.string("participantRoles")).as[List[ParticipantRole]],
-                participantUserIds = Json.parse(rs.string("participantUserIds")).as[List[Id]],
+                participantRoles = Nil,
+                participantUserIds = Nil,
                 preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
                 rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
                 rejectionReason = rs.string("rejectionReason"),
@@ -115,6 +133,14 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -127,7 +153,7 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `observerUserIds`, `openedAt`, `order`, `participantRoles`, `participantUserIds`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
                   FROM opensessiondecisionview_table
                   WHERE `stageId` = ?"""
               .bind(stageId)
@@ -136,11 +162,11 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
                 closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
                 name = rs.string("name"),
-                observerUserIds = Json.parse(rs.string("observerUserIds")).as[List[Id]],
+                observerUserIds = Nil,
                 openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
                 order = rs.int("order"),
-                participantRoles = Json.parse(rs.string("participantRoles")).as[List[ParticipantRole]],
-                participantUserIds = Json.parse(rs.string("participantUserIds")).as[List[Id]],
+                participantRoles = Nil,
+                participantUserIds = Nil,
                 preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
                 rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
                 rejectionReason = rs.string("rejectionReason"),
@@ -150,6 +176,14 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -162,7 +196,7 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `observerUserIds`, `openedAt`, `order`, `participantRoles`, `participantUserIds`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
                   FROM opensessiondecisionview_table
                   WHERE `tenantId` = ?"""
               .bind(tenantId)
@@ -171,11 +205,11 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
                 closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
                 name = rs.string("name"),
-                observerUserIds = Json.parse(rs.string("observerUserIds")).as[List[Id]],
+                observerUserIds = Nil,
                 openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
                 order = rs.int("order"),
-                participantRoles = Json.parse(rs.string("participantRoles")).as[List[ParticipantRole]],
-                participantUserIds = Json.parse(rs.string("participantUserIds")).as[List[Id]],
+                participantRoles = Nil,
+                participantUserIds = Nil,
                 preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
                 rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
                 rejectionReason = rs.string("rejectionReason"),
@@ -185,6 +219,14 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -197,7 +239,7 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `observerUserIds`, `openedAt`, `order`, `participantRoles`, `participantUserIds`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
                   FROM opensessiondecisionview_table
                   WHERE `workshopId` = ?"""
               .bind(workshopId)
@@ -206,11 +248,11 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
                 closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
                 name = rs.string("name"),
-                observerUserIds = Json.parse(rs.string("observerUserIds")).as[List[Id]],
+                observerUserIds = Nil,
                 openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
                 order = rs.int("order"),
-                participantRoles = Json.parse(rs.string("participantRoles")).as[List[ParticipantRole]],
-                participantUserIds = Json.parse(rs.string("participantUserIds")).as[List[Id]],
+                participantRoles = Nil,
+                participantUserIds = Nil,
                 preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
                 rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
                 rejectionReason = rs.string("rejectionReason"),
@@ -220,6 +262,14 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -229,18 +279,18 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `observerUserIds`, `openedAt`, `order`, `participantRoles`, `participantUserIds`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
                   FROM opensessiondecisionview_table"""
               .map(rs => OpenSessionDecisionView(
                 activatedAt = rs.longOpt("activatedAt").map(java.time.Instant.ofEpochMilli),
                 approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
                 closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
                 name = rs.string("name"),
-                observerUserIds = Json.parse(rs.string("observerUserIds")).as[List[Id]],
+                observerUserIds = Nil,
                 openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
                 order = rs.int("order"),
-                participantRoles = Json.parse(rs.string("participantRoles")).as[List[ParticipantRole]],
-                participantUserIds = Json.parse(rs.string("participantUserIds")).as[List[Id]],
+                participantRoles = Nil,
+                participantUserIds = Nil,
                 preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
                 rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
                 rejectionReason = rs.string("rejectionReason"),
@@ -250,6 +300,161 @@ class OpenSessionDecisionViewRepositoryImpl extends OpenSessionDecisionViewRepos
                 workshopId = rs.string("workshopId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge bab793fe-1572-4915-9e6f-20d616a07c3f@6df99b66511b7441
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[OpenSessionDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+                  FROM opensessiondecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `sessionId`, `stageId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => OpenSessionDecisionView(
+                activatedAt = rs.longOpt("activatedAt").map(java.time.Instant.ofEpochMilli),
+                approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
+                closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
+                name = rs.string("name"),
+                observerUserIds = Nil,
+                openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
+                order = rs.int("order"),
+                participantRoles = Nil,
+                participantUserIds = Nil,
+                preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
+                rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
+                rejectionReason = rs.string("rejectionReason"),
+                sessionId = rs.string("sessionId"),
+                stageId = rs.string("stageId"),
+                tenantId = rs.string("tenantId"),
+                workshopId = rs.string("workshopId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge bab793fe-1572-4915-9e6f-20d616a07c3f@6df99b66511b7441
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM opensessiondecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param participantUserId  @knowledge 05c07576-a9ab-42ef-90f4-6919482a6093@575c7b37696ccb8d
+   */
+  override def findByParticipantUserId(participantUserId: String): Future[List[OpenSessionDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+                  FROM opensessiondecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `opensessiondecisionview_participantuserids_table` WHERE `opensessiondecisionview_participantuserids_table`.`sessionId` = `opensessiondecisionview_table`.`sessionId` AND `opensessiondecisionview_participantuserids_table`.`stageId` = `opensessiondecisionview_table`.`stageId` AND `opensessiondecisionview_participantuserids_table`.`value` = ?)"""
+              .bind(participantUserId)
+              .map(rs => OpenSessionDecisionView(
+                activatedAt = rs.longOpt("activatedAt").map(java.time.Instant.ofEpochMilli),
+                approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
+                closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
+                name = rs.string("name"),
+                observerUserIds = Nil,
+                openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
+                order = rs.int("order"),
+                participantRoles = Nil,
+                participantUserIds = Nil,
+                preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
+                rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
+                rejectionReason = rs.string("rejectionReason"),
+                sessionId = rs.string("sessionId"),
+                stageId = rs.string("stageId"),
+                tenantId = rs.string("tenantId"),
+                workshopId = rs.string("workshopId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param observerUserId  @knowledge 36a96a17-63b4-415c-ad24-0eb15ed31838@c8e25dab3932e6e4
+   */
+  override def findByObserverUserId(observerUserId: String): Future[List[OpenSessionDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `activatedAt`, `approvedAt`, `closedAt`, `name`, `openedAt`, `order`, `preparedAt`, `rejectedAt`, `rejectionReason`, `sessionId`, `stageId`, `tenantId`, `workshopId`
+                  FROM opensessiondecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `opensessiondecisionview_observeruserids_table` WHERE `opensessiondecisionview_observeruserids_table`.`sessionId` = `opensessiondecisionview_table`.`sessionId` AND `opensessiondecisionview_observeruserids_table`.`stageId` = `opensessiondecisionview_table`.`stageId` AND `opensessiondecisionview_observeruserids_table`.`value` = ?)"""
+              .bind(observerUserId)
+              .map(rs => OpenSessionDecisionView(
+                activatedAt = rs.longOpt("activatedAt").map(java.time.Instant.ofEpochMilli),
+                approvedAt = rs.longOpt("approvedAt").map(java.time.Instant.ofEpochMilli),
+                closedAt = rs.longOpt("closedAt").map(java.time.Instant.ofEpochMilli),
+                name = rs.string("name"),
+                observerUserIds = Nil,
+                openedAt = rs.longOpt("openedAt").map(java.time.Instant.ofEpochMilli),
+                order = rs.int("order"),
+                participantRoles = Nil,
+                participantUserIds = Nil,
+                preparedAt = rs.longOpt("preparedAt").map(java.time.Instant.ofEpochMilli),
+                rejectedAt = rs.longOpt("rejectedAt").map(java.time.Instant.ofEpochMilli),
+                rejectionReason = rs.string("rejectionReason"),
+                sessionId = rs.string("sessionId"),
+                stageId = rs.string("stageId"),
+                tenantId = rs.string("tenantId"),
+                workshopId = rs.string("workshopId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                observerUserIds = sql"SELECT `value` FROM `opensessiondecisionview_observeruserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                participantRoles = sql"SELECT `userId`, `role` FROM `opensessiondecisionview_participantroles_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => ParticipantRole(userId = Id.of(rs.string("userId")), role = rs.string("role"))).list.apply(),
+                participantUserIds = sql"SELECT `value` FROM `opensessiondecisionview_participantuserids_table` WHERE `sessionId` = ? AND `stageId` = ? ORDER BY `idx`".bind(row.sessionId, row.stageId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====

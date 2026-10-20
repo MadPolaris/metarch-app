@@ -28,7 +28,7 @@ class NoteGraphViewOnCollisionResolvedHandler @Inject() (noteGraphViewRepository
         // 图投影意图（元数据 referenceCode·graph 方言）：graph.updateNodeProps(key = event.noteId, props = { hasConflictWarning = "false", tenantId = event.tenantId })
         event match {
           case NoteEventPO.Event.CollisionResolved(po) =>
-            noteGraphViewRepository.updateNodeProps(po.noteId, Map("hasConflictWarning" -> "false", "tenantId" -> po.tenantId)) // 结构（label/keyName/keySpace 前缀/端点 match）烧在 ④Impl——Strict 悬空停车场
+            noteGraphViewRepository.updateNodeProps(po.noteId, Map("hasConflictWarning" -> false, "tenantId" -> po.tenantId)) // 结构（label/keyName/keySpace 前缀/端点 match）烧在 ④Impl——Strict 悬空停车场
           case _ => () // 非本投影关注事件
         }
         // ==== END MANUAL ====

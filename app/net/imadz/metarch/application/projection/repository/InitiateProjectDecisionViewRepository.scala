@@ -71,5 +71,17 @@ trait InitiateProjectDecisionViewRepository {
   def findAll(): Future[List[InitiateProjectDecisionView]]
   // Logic: 查全部 InitiateProjectDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge c4a9d333-1bab-469a-b755-ac3deca5920e@460ca32e606af9e4
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[InitiateProjectDecisionView]]
+  // Logic: 按 tenantId 分页查 InitiateProjectDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge c4a9d333-1bab-469a-b755-ac3deca5920e@460ca32e606af9e4
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 InitiateProjectDecisionView（分页 total）
+
 }
 

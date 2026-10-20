@@ -127,4 +127,52 @@ class RoleCommandBindingDecisionViewRepositoryImpl extends RoleCommandBindingDec
     // ==== END MANUAL ====
   }
 
+  /**
+   * @param tenantId  @knowledge afb3f087-aace-403b-bb7d-df62a3a12ec6@18d5f421b82ff6ca
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[RoleCommandBindingDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `bindingId`, `boundAt`, `boundBy`, `commandName`, `roleName`, `ruling`, `status`, `systemCommand`, `tenantId`, `unboundAt`, `unboundReason`
+                  FROM rolecommandbindingdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `bindingId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => RoleCommandBindingDecisionView(
+                bindingId = Id.of(rs.string("bindingId")),
+                boundAt = rs.longOpt("boundAt").map(java.time.Instant.ofEpochMilli),
+                boundBy = rs.string("boundBy"),
+                commandName = rs.string("commandName"),
+                roleName = rs.string("roleName"),
+                ruling = rs.string("ruling"),
+                status = rs.string("status"),
+                systemCommand = rs.boolean("systemCommand"),
+                tenantId = rs.string("tenantId"),
+                unboundAt = rs.longOpt("unboundAt").map(java.time.Instant.ofEpochMilli),
+                unboundReason = rs.string("unboundReason")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge afb3f087-aace-403b-bb7d-df62a3a12ec6@18d5f421b82ff6ca
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM rolecommandbindingdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

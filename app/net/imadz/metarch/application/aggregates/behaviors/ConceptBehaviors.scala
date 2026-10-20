@@ -22,7 +22,7 @@ object ConceptBehaviors extends ConceptCommandHelpers {
   private def defaultBehaviors(state: ConceptState): PartialFunction[ConceptCommandFamily, Effect[ConceptEvent, ConceptState]] = {
     case cmd: DeprecateConcept => runReplyingPolicy(ConceptRules.DeprecateConceptRule, DeprecateConceptHelper)(state, cmd).replyWith(cmd.replyTo)
     case cmd: DetectConceptConflict => runReplyingPolicy(ConceptRules.DetectConceptConflictRule, DetectConceptConflictHelper)(state, cmd).replyWith(cmd.replyTo)
-    case EstablishConcept(replyTo) =>
+    case _: EstablishConcept =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

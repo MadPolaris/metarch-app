@@ -1,0 +1,79 @@
+{
+  "comment": "字段爆破面 golden 正负用例（EP_Field_Impact_Server_Side P1·2026-10-08·租户图 74394db8 实测基线）。正例①＝orgMemberId 五候选跨面锚（id 直接归属+pm 经聚合宿主+pl 经事件宿主）；正例②＝orgMemberIds 反向血缘锚（st 面 derivesFrom 上游）；正例③＝department 八面锚含 rm 面 5 视图（KN 归约 owner=OrganizationMember 族）；正例④＝全限定名 OrganizationMember.orgMemberId 宿主过滤收敛；正例⑤＝UUID noteId 直取含 derivesFrom 血缘；正例⑥＝split 逐候选闭包。负例＝不存在字段名→空集负断言。防回归哨兵：writtenBy 匹配必须 split(';') 集合精确相等（CONTAINS 会被 name 前缀冲突击穿——本组用例 anchor 名均为常见短名，任何 CONTAINS 实现都会多出行集而断言失败）。",
+  "cases": [
+    {
+      "kind": "positive",
+      "note": "orgMemberId 五候选：id 面 2 行（OrganizationMember 聚合宿主）+ pm 面 1 行（Tenant 聚合宿主）+ pl 面 3 行（事件宿主）",
+      "body": { "anchor": "orgMemberId" },
+      "expect": {
+        "mode": "ambiguous",
+        "candidatesMin": 5,
+        "facesContain": ["id", "pm", "pl"],
+        "containsRow": [
+          { "face": "id", "container": "OrganizationMember", "name": "orgMemberId" },
+          { "face": "pm", "container": "Tenant", "name": "orgMemberId" }
+        ]
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "orgMemberIds 反向血缘锚：st 面 Tenant 行必须携带 derivesFrom 上游（writtenBy 派生链正向）",
+      "body": { "anchor": "orgMemberIds" },
+      "expect": {
+        "mode": "ambiguous",
+        "facesContain": ["st", "rm"],
+        "stRowDerivesFromNonEmpty": true
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "department 八面锚：st/pm/pl 三面 + rm 面 5 读模型视图（onlyBy.rm 必须含这批视图——差分口径验证）",
+      "body": { "anchor": "department" },
+      "expect": {
+        "mode": "ambiguous",
+        "candidatesMin": 8,
+        "facesContain": ["st", "pm", "pl", "rm"],
+        "onlyByRmContains": "DecisionView"
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "全限定名宿主过滤：OrganizationMember.orgMemberId 收敛到 id 面（裸名 5 候选→3 候选）",
+      "body": { "anchor": "OrganizationMember.orgMemberId" },
+      "expect": {
+        "mode": "resolved",
+        "candidatesMax": 4,
+        "facesContain": ["id"]
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "UUID noteId 直取（id 面字段 5a7e99f4）：单行+derivesFrom 非空+owners=OrganizationMember",
+      "body": { "anchor": "5a7e99f4-830b-4ca8-9b1e-2861bd09d879" },
+      "expect": {
+        "mode": "uuid",
+        "rowsMin": 1,
+        "firstNodeDerivesFromNonEmpty": true
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "split 逐候选闭包：department 8 候选拆独立 impact 段（每段 mode=resolved）",
+      "body": { "anchor": "department", "split": true },
+      "expect": {
+        "mode": "split",
+        "candidatesMin": 8,
+        "everyCandidateHasImpact": true
+      }
+    },
+    {
+      "kind": "negative",
+      "note": "不存在字段名 → 必须空集负断言（mode=missed·本图负断言，非系统不存在）",
+      "body": { "anchor": "NoSuchField_20261008" },
+      "expect": {
+        "mode": "missed",
+        "rows": 0
+      }
+    }
+  ]
+}

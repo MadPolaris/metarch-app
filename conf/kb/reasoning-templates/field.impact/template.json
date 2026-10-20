@@ -1,0 +1,12 @@
+{
+  "name": "field.impact",
+  "description": "字段级影响面问答：给定字段名，返回其在 ②层四面（id 标识/st 状态/pm 命令参数/pl 事件载荷/vo 值对象成员）＋③层 rm 面（读模型视图字段）的全部出现，附 owner 聚合归约（容器为聚合概念直接归属·否则经 KN_FM_OF|KN_RM_OF 归约——多源视图多 owner＝诚实多族承载）＋KN_DERIVES_FROM 双向血缘（derivesFrom 上游 payload / derivedBy 下游 stateField）。与 impact.aggregate（聚合级）/ agg.relates（缩并图战略级）构成三级影响面阶梯。",
+  "doc": "kn_kb_storage_plan §6.2 白名单模板（EP_Artifacts_Attribution_Closure P4·2026-09-14）。数据依赖：②层 KnField＝kn_push_l2 字段树；③层 rm 面 KnField(kind='rm')/KN_RM_OF＝kn_push_l2 rm 面（readmodels_view_gate 门滤真源）。同名字段跨面出现是常态（如 orgMemberId 同为 OrganizationMember 标识＋Tenant 名册参数/载荷）——全部如实返回。",
+  "params": {
+    "tenant":   { "type": "string", "required": true, "default": "root", "desc": "租户键（默认 root）" },
+    "project":  { "type": "string", "required": true, "default": "metarch", "desc": "项目键（默认 metarch）" },
+    "field":    { "type": "string", "required": true, "desc": "字段名（如 orgMemberId/department——跨面同名出现全量返回）" }
+  },
+  "cypher": "query.cypher",
+  "golden": "golden.json"
+}

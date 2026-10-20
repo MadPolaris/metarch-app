@@ -31,6 +31,7 @@ object TenantEventHandler {
 
     // @knowledge fc4a2899-799a-47bd-b9f5-a3ed365a474d@238776a1d784b8af
     case event: TenantOnboarded =>
+      // 因果溯源: TenantOwnerDesignated（strong）⇒ 本事件
       state.copy(name = event.name, ownerUserId = event.ownerUserId, createdAt = event.timestamp, createdBy = event.triggeredBy, status = "active")
       // 待审: suspendedAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；archivedAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；orgMemberIds（DERIVED：接受邀请的成员累积（TenantMemberInvitationAccepted → TenantMemberJoined 追加））；payload 未映射: tenantId
 

@@ -36,20 +36,20 @@ message FsmDefinitionEstablishedPO {
   string confirmedBy = 2; // @knowledge d577759d-02fe-4a13-9821-623f3c04511b@d23be5de3f4f03f1
   string triggeredBy = 3; // @knowledge f7713f92-cee2-4e0f-b47e-8dbbffc02d90@12e4b45c1028f155
   int64 timestamp = 4; // @knowledge 838e5d57-6979-4b53-9334-4785c4506b69@eeb1d43b6584f48f
-  string tenantId = 5;
+  string tenantId = 5; // @knowledge 752e9ce7-a37c-48f6-8904-259a736fcab4
 
 }
 
 message FsmDefinitionProposedPO {
   string fsmId = 1; // @knowledge 2831da86-6241-4948-a074-64d047e86345@5b58c8f5aa885bff
-  string aggregateName = 2; // @knowledge 70e1367f-e12a-458d-a210-d469ce342307@dfe1ef82445c9fda
-  repeated net.imadz.metarch.infrastructure.proto.FsmStateDefPO states = 3; // @knowledge 4f4a2e55-a491-41f4-acb8-ed22df767a72@86d8fdb44a4a7e5b
-  repeated net.imadz.metarch.infrastructure.proto.FsmTransitionPO transitions = 4; // @knowledge b301721f-49e4-4406-97bf-83f2c26d92d1@bb5539fa2858e7b8
-  int64 createdAt = 5; // @knowledge 4ac163b0-3050-4b8d-8626-f354c5924612@81d05369ef3401d1
-  string createdBy = 6; // @knowledge ec50ca66-2f4f-4447-9a74-61a813a6f7d0@4e76fb126da1f27b
-  string triggeredBy = 7; // @knowledge 547beeb3-f613-4fa2-8f6b-ad41cd670d41@307b91dca181e59f
-  int64 timestamp = 8; // @knowledge a605bafa-4e31-4b91-8b3b-3fd39ade8e74@7a5ae5054db2a5f2
-  string tenantId = 9;
+  string tenantId = 2; // @knowledge 5330b11b-42af-42e0-a088-b474755829de
+  string aggregateName = 3; // @knowledge 70e1367f-e12a-458d-a210-d469ce342307@dfe1ef82445c9fda
+  repeated net.imadz.metarch.infrastructure.proto.FsmStateDefPO states = 4; // @knowledge 4f4a2e55-a491-41f4-acb8-ed22df767a72@86d8fdb44a4a7e5b
+  repeated net.imadz.metarch.infrastructure.proto.FsmTransitionPO transitions = 5; // @knowledge b301721f-49e4-4406-97bf-83f2c26d92d1@bb5539fa2858e7b8
+  int64 createdAt = 6; // @knowledge 4ac163b0-3050-4b8d-8626-f354c5924612@81d05369ef3401d1
+  string createdBy = 7; // @knowledge ec50ca66-2f4f-4447-9a74-61a813a6f7d0@4e76fb126da1f27b
+  string triggeredBy = 8; // @knowledge 547beeb3-f613-4fa2-8f6b-ad41cd670d41@307b91dca181e59f
+  int64 timestamp = 9; // @knowledge a605bafa-4e31-4b91-8b3b-3fd39ade8e74@7a5ae5054db2a5f2
 
 }
 
@@ -59,7 +59,7 @@ message FsmElementsUpdatedPO {
   repeated net.imadz.metarch.infrastructure.proto.FsmTransitionPO transitions = 3; // @knowledge a4086193-750a-4b50-9b81-05ed7b763712@650a57903f4d5064
   string triggeredBy = 4; // @knowledge f8536f87-97ff-458d-b198-91d7fe1399ac@ed48e51661f46d38
   int64 timestamp = 5; // @knowledge 1e9fa278-e0f9-4472-ac6f-b03f57ad8ef0@0f0b49078c046e88
-  string tenantId = 6;
+  string tenantId = 6; // @knowledge db320c00-8ded-421c-8da5-1522143ee7c2
 
 }
 
@@ -75,11 +75,12 @@ message FsmDefinitionEventPO {
 
 message FsmDefinitionStatePO {
   string fsmId = 1; // @knowledge 65884ce2-9d22-48ec-933b-5947271034f5@f9841281b03f5b67
-  string status = 2; // @knowledge 374f225e-8aad-4e71-a1f3-7c285633c172@18d364c728f0e9ad
-  string aggregateName = 3; // @knowledge d723e3c0-9e78-42a6-aeed-a1eb637a6d46@c514ee4cc44f60ee
-  repeated net.imadz.metarch.infrastructure.proto.FsmStateDefPO states = 4; // @knowledge ca816403-b834-4177-833c-21cac513b685@c57ea7e61db40f00
-  repeated net.imadz.metarch.infrastructure.proto.FsmTransitionPO transitions = 5; // @knowledge 97082845-883d-4a83-be25-65ac874f4930@11c924d9245007dc
-  int64 createdAt = 6; // @knowledge 135836f4-1065-41b7-b475-1ff2dd9ee563@322a211125f32d9c
-  string createdBy = 7; // @knowledge b989e283-97a8-4e39-9cfd-fd20952d6ae9@0d3cb399937126c1
+  string tenantId = 2; // @knowledge eca743a7-9f31-4816-bcc3-59f229d540a0
+  string status = 3; // @knowledge 374f225e-8aad-4e71-a1f3-7c285633c172@18d364c728f0e9ad
+  string aggregateName = 4; // @knowledge d723e3c0-9e78-42a6-aeed-a1eb637a6d46@c514ee4cc44f60ee
+  repeated net.imadz.metarch.infrastructure.proto.FsmStateDefPO states = 5; // @knowledge ca816403-b834-4177-833c-21cac513b685@c57ea7e61db40f00
+  repeated net.imadz.metarch.infrastructure.proto.FsmTransitionPO transitions = 6; // @knowledge 97082845-883d-4a83-be25-65ac874f4930@11c924d9245007dc
+  int64 createdAt = 7; // @knowledge 135836f4-1065-41b7-b475-1ff2dd9ee563@322a211125f32d9c
+  string createdBy = 8; // @knowledge b989e283-97a8-4e39-9cfd-fd20952d6ae9@0d3cb399937126c1
 
 }

@@ -67,5 +67,17 @@ trait DefineContextRelationDecisionViewRepository {
   def findAll(): Future[List[DefineContextRelationDecisionView]]
   // Logic: 查全部 DefineContextRelationDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 2f86f2be-ceb8-4deb-af27-8951cab387a7@686c63056034e349
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[DefineContextRelationDecisionView]]
+  // Logic: 按 tenantId 分页查 DefineContextRelationDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 2f86f2be-ceb8-4deb-af27-8951cab387a7@686c63056034e349
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 DefineContextRelationDecisionView（分页 total）
+
 }
 

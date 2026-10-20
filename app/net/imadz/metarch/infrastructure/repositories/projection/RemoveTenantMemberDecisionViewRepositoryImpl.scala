@@ -122,4 +122,51 @@ class RemoveTenantMemberDecisionViewRepositoryImpl extends RemoveTenantMemberDec
     // ==== END MANUAL ====
   }
 
+  /**
+   * @param tenantId  @knowledge ca42610d-5145-47a6-b7bd-a45b8fa0fa3f@78967c1dd53d8a31
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[RemoveTenantMemberDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `department`, `displayName`, `email`, `jobTitle`, `joinedAt`, `phoneNumber`, `removedAt`, `status`, `tenantId`, `userId`
+                  FROM removetenantmemberdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `tenantId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => RemoveTenantMemberDecisionView(
+                department = rs.string("department"),
+                displayName = rs.string("displayName"),
+                email = rs.string("email"),
+                jobTitle = rs.string("jobTitle"),
+                joinedAt = rs.longOpt("joinedAt").map(java.time.Instant.ofEpochMilli),
+                phoneNumber = rs.string("phoneNumber"),
+                removedAt = rs.longOpt("removedAt").map(java.time.Instant.ofEpochMilli),
+                status = rs.string("status"),
+                tenantId = rs.string("tenantId"),
+                userId = rs.string("userId")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge ca42610d-5145-47a6-b7bd-a45b8fa0fa3f@78967c1dd53d8a31
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM removetenantmemberdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

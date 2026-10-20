@@ -56,5 +56,17 @@ trait ResendInvitationDecisionViewRepository {
   def findAll(): Future[List[ResendInvitationDecisionView]]
   // Logic: 查全部 ResendInvitationDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 6c5dc350-805b-4b17-b8b7-cb9e3530b395@82b0845dfebf2e56
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ResendInvitationDecisionView]]
+  // Logic: 按 tenantId 分页查 ResendInvitationDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 6c5dc350-805b-4b17-b8b7-cb9e3530b395@82b0845dfebf2e56
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 ResendInvitationDecisionView（分页 total）
+
 }
 

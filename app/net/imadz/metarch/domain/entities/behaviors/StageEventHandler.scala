@@ -24,6 +24,7 @@ object StageEventHandler {
 
     // @knowledge 40b95b31-ca40-4f86-af0b-ede9a83e1fc6@c255afc18ace0ba5
     case event: StageApproved =>
+      // 因果溯源: SessionClosed（strong）⇒ 本事件
       state.copy(tenantId = event.tenantId, approvedAt = event.timestamp, status = "approved")
       // 待审: activatedAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；rejectedAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；payload 未映射: stageId
 

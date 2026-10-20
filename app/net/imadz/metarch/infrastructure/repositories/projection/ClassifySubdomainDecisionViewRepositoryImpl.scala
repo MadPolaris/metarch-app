@@ -4,9 +4,9 @@ package net.imadz.metarch.infrastructure.repositories.projection
 
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.ClassifySubdomainDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.ClassifySubdomainDecisionViewTable._
-import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,11 +22,10 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
     // ==== BEGIN MANUAL ====
     DB.localTx { implicit session =>
       sql"""INSERT INTO classifysubdomaindecisionview_table
-            (`aggregateIds`, `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE `aggregateIds` = VALUES(`aggregateIds`), `buyOrBuild` = VALUES(`buyOrBuild`), `classifiedAt` = VALUES(`classifiedAt`), `classifiedBy` = VALUES(`classifiedBy`), `description` = VALUES(`description`), `kind` = VALUES(`kind`), `name` = VALUES(`name`), `tenantId` = VALUES(`tenantId`)"""
+            (`buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE `buyOrBuild` = VALUES(`buyOrBuild`), `classifiedAt` = VALUES(`classifiedAt`), `classifiedBy` = VALUES(`classifiedBy`), `description` = VALUES(`description`), `kind` = VALUES(`kind`), `name` = VALUES(`name`), `tenantId` = VALUES(`tenantId`)"""
         .bind(
-              Json.toJson(view.aggregateIds).toString(),
               view.buyOrBuild,
               (view.classifiedAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.classifiedBy,
@@ -37,6 +36,11 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
               view.tenantId
             )
         .update.apply()
+      // 子表（列表结构化·Phase 2 R4）：同事务先删后插
+      sql"DELETE FROM `classifysubdomaindecisionview_aggregateids_table` WHERE `subdomainId` = ?".bind(view.subdomainId).update.apply()
+      view.aggregateIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `classifysubdomaindecisionview_aggregateids_table` (`subdomainId`, `idx`, `value`) VALUES (?, ?, ?)".bind(view.subdomainId, idx, elem.toString).update.apply()
+      }
     }
     // ==== END MANUAL ====
   }
@@ -48,12 +52,12 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `aggregateIds`, `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
+            val rows = sql"""SELECT `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
                   FROM classifysubdomaindecisionview_table
                   WHERE `subdomainId` = ?"""
               .bind(subdomainId)
               .map(rs => ClassifySubdomainDecisionView(
-                aggregateIds = Json.parse(rs.string("aggregateIds")).as[List[Id]],
+                aggregateIds = Nil,
                 buyOrBuild = rs.string("buyOrBuild"),
                 classifiedAt = rs.longOpt("classifiedAt").map(java.time.Instant.ofEpochMilli),
                 classifiedBy = rs.string("classifiedBy"),
@@ -63,7 +67,13 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
                 subdomainId = rs.string("subdomainId"),
                 tenantId = rs.string("tenantId")
               ))
-              .headOption.apply()
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                aggregateIds = sql"SELECT `value` FROM `classifysubdomaindecisionview_aggregateids_table` WHERE `subdomainId` = ? ORDER BY `idx`".bind(row.subdomainId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated.headOption
           }
         }
     // ==== END MANUAL ====
@@ -76,12 +86,12 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `aggregateIds`, `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
+            val rows = sql"""SELECT `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
                   FROM classifysubdomaindecisionview_table
                   WHERE `tenantId` = ?"""
               .bind(tenantId)
               .map(rs => ClassifySubdomainDecisionView(
-                aggregateIds = Json.parse(rs.string("aggregateIds")).as[List[Id]],
+                aggregateIds = Nil,
                 buyOrBuild = rs.string("buyOrBuild"),
                 classifiedAt = rs.longOpt("classifiedAt").map(java.time.Instant.ofEpochMilli),
                 classifiedBy = rs.string("classifiedBy"),
@@ -92,6 +102,12 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
                 tenantId = rs.string("tenantId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                aggregateIds = sql"SELECT `value` FROM `classifysubdomaindecisionview_aggregateids_table` WHERE `subdomainId` = ? ORDER BY `idx`".bind(row.subdomainId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -101,10 +117,10 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `aggregateIds`, `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
+            val rows = sql"""SELECT `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
                   FROM classifysubdomaindecisionview_table"""
               .map(rs => ClassifySubdomainDecisionView(
-                aggregateIds = Json.parse(rs.string("aggregateIds")).as[List[Id]],
+                aggregateIds = Nil,
                 buyOrBuild = rs.string("buyOrBuild"),
                 classifiedAt = rs.longOpt("classifiedAt").map(java.time.Instant.ofEpochMilli),
                 classifiedBy = rs.string("classifiedBy"),
@@ -115,6 +131,98 @@ class ClassifySubdomainDecisionViewRepositoryImpl extends ClassifySubdomainDecis
                 tenantId = rs.string("tenantId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                aggregateIds = sql"SELECT `value` FROM `classifysubdomaindecisionview_aggregateids_table` WHERE `subdomainId` = ? ORDER BY `idx`".bind(row.subdomainId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 871bbb27-e82e-4e95-a781-ed809fbd05dd@7a7815f4843dcd7f
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ClassifySubdomainDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
+                  FROM classifysubdomaindecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `subdomainId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => ClassifySubdomainDecisionView(
+                aggregateIds = Nil,
+                buyOrBuild = rs.string("buyOrBuild"),
+                classifiedAt = rs.longOpt("classifiedAt").map(java.time.Instant.ofEpochMilli),
+                classifiedBy = rs.string("classifiedBy"),
+                description = rs.string("description"),
+                kind = rs.string("kind"),
+                name = rs.string("name"),
+                subdomainId = rs.string("subdomainId"),
+                tenantId = rs.string("tenantId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                aggregateIds = sql"SELECT `value` FROM `classifysubdomaindecisionview_aggregateids_table` WHERE `subdomainId` = ? ORDER BY `idx`".bind(row.subdomainId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 871bbb27-e82e-4e95-a781-ed809fbd05dd@7a7815f4843dcd7f
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM classifysubdomaindecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param aggregateId  @knowledge 294c545a-1d9f-4e58-bb65-d7a6bdbcd6e0@606ec566ba29d103
+   */
+  override def findByAggregateId(aggregateId: String): Future[List[ClassifySubdomainDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `buyOrBuild`, `classifiedAt`, `classifiedBy`, `description`, `kind`, `name`, `subdomainId`, `tenantId`
+                  FROM classifysubdomaindecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `classifysubdomaindecisionview_aggregateids_table` WHERE `classifysubdomaindecisionview_aggregateids_table`.`subdomainId` = `classifysubdomaindecisionview_table`.`subdomainId` AND `classifysubdomaindecisionview_aggregateids_table`.`value` = ?)"""
+              .bind(aggregateId)
+              .map(rs => ClassifySubdomainDecisionView(
+                aggregateIds = Nil,
+                buyOrBuild = rs.string("buyOrBuild"),
+                classifiedAt = rs.longOpt("classifiedAt").map(java.time.Instant.ofEpochMilli),
+                classifiedBy = rs.string("classifiedBy"),
+                description = rs.string("description"),
+                kind = rs.string("kind"),
+                name = rs.string("name"),
+                subdomainId = rs.string("subdomainId"),
+                tenantId = rs.string("tenantId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                aggregateIds = sql"SELECT `value` FROM `classifysubdomaindecisionview_aggregateids_table` WHERE `subdomainId` = ? ORDER BY `idx`".bind(row.subdomainId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====

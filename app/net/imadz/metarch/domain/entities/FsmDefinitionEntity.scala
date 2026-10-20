@@ -16,6 +16,7 @@ import scala.collection.immutable.List
 object FsmDefinitionEntity {
   /**
    * @param fsmId  @knowledge 65884ce2-9d22-48ec-933b-5947271034f5@f9841281b03f5b67
+   * @param tenantId 所属租户  @knowledge eca743a7-9f31-4816-bcc3-59f229d540a0
    * @param status PROPOSED / ESTABLISHED  @knowledge 374f225e-8aad-4e71-a1f3-7c285633c172@18d364c728f0e9ad
    * @param aggregateName 该状态机所属的聚合名（18 聚合之一）  @knowledge d723e3c0-9e78-42a6-aeed-a1eb637a6d46@c514ee4cc44f60ee
    * @param states 状态清单（INITIAL 至多一个）  @knowledge ca816403-b834-4177-833c-21cac513b685@c57ea7e61db40f00
@@ -23,9 +24,9 @@ object FsmDefinitionEntity {
    * @param createdAt 创建时间  @knowledge 135836f4-1065-41b7-b475-1ff2dd9ee563@322a211125f32d9c
    * @param createdBy 创建者（AI 提案=ai-inference）  @knowledge b989e283-97a8-4e39-9cfd-fd20952d6ae9@0d3cb399937126c1
    */
-  case class FsmDefinitionState(fsmId: Id, status: String, aggregateName: String, states: List[FsmStateDef] = List.empty, transitions: List[FsmTransition] = List.empty, createdAt: Instant, createdBy: String)
+  case class FsmDefinitionState(fsmId: Id, tenantId: Id, status: String, aggregateName: String, states: List[FsmStateDef] = List.empty, transitions: List[FsmTransition] = List.empty, createdAt: Instant, createdBy: String)
 
-  def empty(fsmId: Id): FsmDefinitionState = FsmDefinitionState(fsmId, "", "", Nil, Nil, null, "")
+  def empty(fsmId: Id): FsmDefinitionState = FsmDefinitionState(fsmId, net.imadz.common.Id.of("00000000-0000-0000-0000-000000000001"), "", "", Nil, Nil, null, "")
 
   sealed trait FsmDefinitionEvent extends CborSerializable
 
@@ -34,10 +35,12 @@ object FsmDefinitionEntity {
    * @param confirmedBy 定稿人  @knowledge d577759d-02fe-4a13-9821-623f3c04511b@d23be5de3f4f03f1
    * @param triggeredBy 操作人  @knowledge f7713f92-cee2-4e0f-b47e-8dbbffc02d90@12e4b45c1028f155
    * @param timestamp 事件发生时间  @knowledge 838e5d57-6979-4b53-9334-4785c4506b69@eeb1d43b6584f48f
+   * @param tenantId  @knowledge 752e9ce7-a37c-48f6-8904-259a736fcab4
    */
-  case class FsmDefinitionEstablished(fsmId: Id, confirmedBy: String, triggeredBy: String, timestamp: Instant) extends FsmDefinitionEvent
+  case class FsmDefinitionEstablished(fsmId: Id, confirmedBy: String, triggeredBy: String, timestamp: Instant, tenantId: Id) extends FsmDefinitionEvent
   /**
    * @param fsmId FSM 标识  @knowledge 2831da86-6241-4948-a074-64d047e86345@5b58c8f5aa885bff
+   * @param tenantId 【已补】多租户隔离  @knowledge 5330b11b-42af-42e0-a088-b474755829de
    * @param aggregateName 聚合名  @knowledge 70e1367f-e12a-458d-a210-d469ce342307@dfe1ef82445c9fda
    * @param states 状态清单  @knowledge 4f4a2e55-a491-41f4-acb8-ed22df767a72@86d8fdb44a4a7e5b
    * @param transitions 迁移清单  @knowledge b301721f-49e4-4406-97bf-83f2c26d92d1@bb5539fa2858e7b8
@@ -46,15 +49,16 @@ object FsmDefinitionEntity {
    * @param triggeredBy 操作人  @knowledge 547beeb3-f613-4fa2-8f6b-ad41cd670d41@307b91dca181e59f
    * @param timestamp 事件发生时间  @knowledge a605bafa-4e31-4b91-8b3b-3fd39ade8e74@7a5ae5054db2a5f2
    */
-  case class FsmDefinitionProposed(fsmId: Id, aggregateName: String, states: List[FsmStateDef], transitions: List[FsmTransition], createdAt: Instant, createdBy: String, triggeredBy: String, timestamp: Instant) extends FsmDefinitionEvent
+  case class FsmDefinitionProposed(fsmId: Id, tenantId: Id, aggregateName: String, states: List[FsmStateDef], transitions: List[FsmTransition], createdAt: Instant, createdBy: String, triggeredBy: String, timestamp: Instant) extends FsmDefinitionEvent
   /**
    * @param fsmId FSM 标识  @knowledge 7010763e-bb84-4888-930f-0447bd7bef34@8c013148e611d558
    * @param states 状态清单  @knowledge 0d86b456-d059-48ea-8372-6df7f702c43d@79c685d518ba2691
    * @param transitions 迁移清单  @knowledge a4086193-750a-4b50-9b81-05ed7b763712@650a57903f4d5064
    * @param triggeredBy 操作人  @knowledge f8536f87-97ff-458d-b198-91d7fe1399ac@ed48e51661f46d38
    * @param timestamp 事件发生时间  @knowledge 1e9fa278-e0f9-4472-ac6f-b03f57ad8ef0@0f0b49078c046e88
+   * @param tenantId  @knowledge db320c00-8ded-421c-8da5-1522143ee7c2
    */
-  case class FsmElementsUpdated(fsmId: Id, states: List[FsmStateDef], transitions: List[FsmTransition], triggeredBy: String, timestamp: Instant) extends FsmDefinitionEvent
+  case class FsmElementsUpdated(fsmId: Id, states: List[FsmStateDef], transitions: List[FsmTransition], triggeredBy: String, timestamp: Instant, tenantId: Id) extends FsmDefinitionEvent
 
   type FsmDefinitionEventHandler = (FsmDefinitionState, FsmDefinitionEvent) => FsmDefinitionState
 }

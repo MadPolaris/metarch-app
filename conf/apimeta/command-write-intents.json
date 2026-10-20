@@ -1,0 +1,1820 @@
+{
+  "contractHash": "a03b24c4",
+  "schemaVersion": "1.1",
+  "generatedAt": "2026-08-30T12:15:37.583Z",
+  "source": "tools/command_write_intents_audit.mjs --export",
+  "notes": {
+    "excludedNonCommand": "auth×5 + graph/backfill×1 不在意图面",
+    "systemExempt": "ApplyKnowledgePatch/DetectCatalogConflicts/MergeKnowledgePatch 出 exempt 条目",
+    "unroutedNonSystem": [
+      "SubmitDoRFindings"
+    ],
+    "degradedSemantics": "keyDerivation 未覆盖视图全部 isKey ⇒ D7 静态降级；capture-note 单键 provisional 见 T37",
+    "affectedFieldsRule": "produced-event payloads ∩ view fields ∪ derivation keys（S2-15 血统核验于 B4 接入）"
+  },
+  "intents": {
+    "POST /api/concept/:conceptId/deprecate-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "DeprecateConcept",
+      "keyDerivation": {
+        "conceptId": "input.conceptId"
+      },
+      "keysUnresolved": [
+        "edgeId"
+      ],
+      "warnings": [
+        "B1c[edgeId] modelGap:同 park-concept 族"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "conceptId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "conceptId"
+      ],
+      "op": "update"
+    },
+    "POST /api/concept/:conceptId/establish-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "EstablishConcept",
+      "keyDerivation": {
+        "conceptId": "input.conceptId"
+      },
+      "keysUnresolved": [
+        "edgeId"
+      ],
+      "warnings": [
+        "B1c[edgeId] modelGap:EstablishConcept 命令无 edge 参数",
+        "opRule: 无命令元数据，回退 update"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "conceptId"
+        ],
+        "bodyFields": [
+          "contextId",
+          "name",
+          "kind",
+          "description"
+        ]
+      },
+      "affectedFields": [
+        "conceptId"
+      ],
+      "op": "update"
+    },
+    "POST /api/concept/merge-concepts": {
+      "decisionView": "parked-knowledge",
+      "command": "MergeConcepts",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "conceptId",
+        "edgeId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "sourceConceptId",
+          "targetConceptId"
+        ]
+      },
+      "affectedFields": [],
+      "op": "create"
+    },
+    "POST /api/concept/:conceptId/park-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "ParkConcept",
+      "keyDerivation": {
+        "conceptId": "input.conceptId"
+      },
+      "keysUnresolved": [
+        "edgeId"
+      ],
+      "warnings": [
+        "B1c[edgeId] modelGap:ParkConcept 命令无 edge 参数（控制器仅提取 reason）——事件链不含边标识"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "conceptId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "conceptId"
+      ],
+      "op": "create"
+    },
+    "POST /api/concept/:conceptId/remove-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "RemoveConcept",
+      "keyDerivation": {
+        "conceptId": "input.conceptId"
+      },
+      "keysUnresolved": [
+        "edgeId"
+      ],
+      "warnings": [
+        "B1c[edgeId] modelGap:同 park-concept 族"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "conceptId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "conceptId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/concept/:conceptId/resolve-conflict": {
+      "decisionView": "parked-knowledge",
+      "command": "ResolveConflict",
+      "keyDerivation": {
+        "conceptId": "input.conceptId"
+      },
+      "keysUnresolved": [
+        "edgeId"
+      ],
+      "warnings": [
+        "B1c[edgeId] modelGap:同 park-concept 族"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "conceptId"
+        ],
+        "bodyFields": [
+          "resolution"
+        ]
+      },
+      "affectedFields": [
+        "conceptId"
+      ],
+      "op": "update"
+    },
+    "POST /api/concept/:conceptId/unpark-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "UnparkConcept",
+      "keyDerivation": {
+        "conceptId": "input.conceptId"
+      },
+      "keysUnresolved": [
+        "edgeId"
+      ],
+      "warnings": [
+        "B1c[edgeId] modelGap:同 park-concept 族"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "conceptId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "conceptId"
+      ],
+      "op": "update"
+    },
+    "POST /api/concept/:conceptId/update-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "UpdateConcept",
+      "keyDerivation": {
+        "conceptId": "input.conceptId"
+      },
+      "keysUnresolved": [
+        "edgeId"
+      ],
+      "warnings": [
+        "B1c[edgeId] modelGap:同 park-concept 族"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "conceptId"
+        ],
+        "bodyFields": [
+          "description",
+          "kind",
+          "machineSpec",
+          "metadata"
+        ]
+      },
+      "affectedFields": [
+        "conceptId"
+      ],
+      "op": "update"
+    },
+    "POST /api/context/:contextId/discover-context": {
+      "decisionView": "contexts",
+      "command": "DiscoverContext",
+      "keyDerivation": {
+        "contextId": "input.contextId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "contextId"
+        ],
+        "bodyFields": [
+          "name",
+          "description",
+          "subdomainIds"
+        ]
+      },
+      "affectedFields": [
+        "contextId",
+        "description",
+        "name",
+        "subdomainIds",
+        "tenantId"
+      ],
+      "op": "create"
+    },
+    "POST /api/context/:contextId/update-context-scope": {
+      "decisionView": "contexts",
+      "command": "UpdateContextScope",
+      "keyDerivation": {
+        "contextId": "input.contextId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "contextId"
+        ],
+        "bodyFields": [
+          "subdomainIds"
+        ]
+      },
+      "affectedFields": [
+        "contextId",
+        "subdomainIds"
+      ],
+      "op": "update"
+    },
+    "POST /api/context-relation/define-context-relation": {
+      "decisionView": "context-relations",
+      "command": "DefineContextRelation",
+      "keyDerivation": {
+        "relationId": "input.relationId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "relationId",
+          "upstreamContextId",
+          "downstreamContextId",
+          "kind",
+          "integration",
+          "description"
+        ]
+      },
+      "affectedFields": [
+        "description",
+        "downstreamContextId",
+        "integration",
+        "kind",
+        "relationId",
+        "tenantId",
+        "upstreamContextId"
+      ],
+      "op": "create"
+    },
+    "POST /api/context-relation/update-context-relation": {
+      "decisionView": "context-relations",
+      "command": "UpdateContextRelation",
+      "keyDerivation": {
+        "relationId": "input.relationId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "relationId",
+          "kind",
+          "integration",
+          "description"
+        ]
+      },
+      "affectedFields": [
+        "description",
+        "integration",
+        "kind",
+        "relationId"
+      ],
+      "op": "update"
+    },
+    "POST /api/do-r/:dorId/conclude-do-r": {
+      "decisionView": "dor-verdicts",
+      "command": "ConcludeDoR",
+      "keyDerivation": {
+        "dorId": "input.dorId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "dorId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "dorId"
+      ],
+      "op": "update"
+    },
+    "POST /api/do-r/:dorId/evaluate-do-r": {
+      "decisionView": "dor-verdicts",
+      "command": "EvaluateDoR",
+      "keyDerivation": {
+        "dorId": "input.dorId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "dorId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "dorId"
+      ],
+      "op": "multiRow"
+    },
+    "POST /api/do-r/:dorId/fix-do-rverdict": {
+      "decisionView": "dor-verdicts",
+      "command": "FixDoRVerdict",
+      "keyDerivation": {
+        "dorId": "input.dorId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "dorId"
+        ],
+        "bodyFields": [
+          "verdictId",
+          "resolution"
+        ]
+      },
+      "affectedFields": [
+        "dorId"
+      ],
+      "op": "multiRow"
+    },
+    "POST /api/do-r/:dorId/reopen-do-r": {
+      "decisionView": "dor-verdicts",
+      "command": "ReopenDoR",
+      "keyDerivation": {
+        "dorId": "input.dorId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "dorId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "dorId",
+        "reason"
+      ],
+      "op": "update"
+    },
+    "POST /api/do-r/:dorId/submit-do-rverdict": {
+      "decisionView": "dor-verdicts",
+      "command": "SubmitDoRVerdict",
+      "keyDerivation": {
+        "dorId": "input.dorId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "dorId"
+        ],
+        "bodyFields": [
+          "criterion",
+          "evaluatorType",
+          "evaluatorId",
+          "evaluatorRole",
+          "aiModelVersion",
+          "harnessBrand",
+          "harnessVersion",
+          "effort",
+          "result",
+          "reason",
+          "evidenceLinks"
+        ]
+      },
+      "affectedFields": [
+        "dorId",
+        "recordedAt",
+        "recordedBy"
+      ],
+      "op": "create"
+    },
+    "POST /api/knowledge-patch/merge-knowledge-patch": {
+      "decisionView": null,
+      "exempt": true,
+      "command": "MergeKnowledgePatch",
+      "_evidence": {
+        "addressing": "system-exempt"
+      },
+      "op": null
+    },
+    "POST /api/knowledge-patch/submit-knowledge-patch": {
+      "decisionView": "knowledge-patches",
+      "command": "SubmitKnowledgePatch",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "patchId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "sessionId",
+          "catalogId",
+          "contextId",
+          "parentPatchId",
+          "concepts",
+          "relations"
+        ]
+      },
+      "affectedFields": [],
+      "op": "multiRow"
+    },
+    "POST /api/model-catalog/apply-knowledge-patch": {
+      "decisionView": null,
+      "exempt": true,
+      "command": "ApplyKnowledgePatch",
+      "_evidence": {
+        "addressing": "system-exempt"
+      },
+      "op": null
+    },
+    "POST /api/model-catalog/assemble-metadata": {
+      "decisionView": "metadata-assemblies",
+      "command": "AssembleMetadata",
+      "keyDerivation": {
+        "catalogId": "reply.aggregateId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "projectId",
+          "version",
+          "manifest",
+          "catalogId"
+        ]
+      },
+      "affectedFields": [
+        "catalogId",
+        "projectId",
+        "tenantId",
+        "version"
+      ],
+      "op": "create"
+    },
+    "POST /api/model-catalog/create-catalog-version": {
+      "decisionView": "catalog-versions",
+      "command": "CreateCatalogVersion",
+      "keyDerivation": {
+        "catalogId": "reply.aggregateId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "projectId",
+          "version",
+          "baseVersion"
+        ]
+      },
+      "affectedFields": [
+        "baseVersion",
+        "catalogId",
+        "projectId",
+        "tenantId",
+        "version"
+      ],
+      "op": "create"
+    },
+    "POST /api/model-catalog/detect-catalog-conflicts": {
+      "decisionView": null,
+      "exempt": true,
+      "command": "DetectCatalogConflicts",
+      "_evidence": {
+        "addressing": "system-exempt"
+      },
+      "op": null
+    },
+    "POST /api/model-catalog/export-metadata": {
+      "decisionView": "metadata-exports",
+      "command": "ExportMetadata",
+      "keyDerivation": {
+        "catalogId": "input.catalogId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "catalogId",
+          "manifest"
+        ]
+      },
+      "affectedFields": [
+        "catalogId"
+      ],
+      "op": "update"
+    },
+    "POST /api/model-catalog/release-catalog-version": {
+      "decisionView": "catalog-version-releases",
+      "command": "ReleaseCatalogVersion",
+      "keyDerivation": {
+        "catalogId": "input.catalogId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "catalogId",
+          "version"
+        ]
+      },
+      "affectedFields": [
+        "catalogId",
+        "version"
+      ],
+      "op": "update"
+    },
+    "POST /api/model-catalog/release-metadata-version": {
+      "decisionView": "metadata-version-releases",
+      "command": "ReleaseMetadataVersion",
+      "keyDerivation": {
+        "catalogId": "input.catalogId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "catalogId",
+          "version"
+        ]
+      },
+      "affectedFields": [
+        "catalogId",
+        "version"
+      ],
+      "op": "update"
+    },
+    "POST /api/model-catalog/resolve-catalog-conflict": {
+      "decisionView": "catalog-conflict-resolutions",
+      "command": "ResolveCatalogConflict",
+      "keyDerivation": {
+        "catalogId": "input.catalogId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "catalogId",
+          "conflictId",
+          "resolutionAction",
+          "resolutionNote"
+        ]
+      },
+      "affectedFields": [
+        "catalogId"
+      ],
+      "op": "update"
+    },
+    "POST /api/note/capture-note": {
+      "decisionView": "notes",
+      "command": "CaptureNote",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "noteId",
+        "questionId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "sessionId",
+          "externalId",
+          "boardId",
+          "content",
+          "timeline",
+          "pivotal"
+        ]
+      },
+      "affectedFields": [
+        "boardId",
+        "content",
+        "externalId",
+        "noteId",
+        "pivotal",
+        "sessionId",
+        "tenantId",
+        "timeline",
+        "type"
+      ],
+      "op": "create"
+    },
+    "POST /api/note/:noteId/remove-note": {
+      "decisionView": "notes",
+      "command": "RemoveNote",
+      "keyDerivation": {
+        "noteId": "input.noteId"
+      },
+      "keysUnresolved": [
+        "questionId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "noteId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "noteId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/note/:noteId/resolve-collision": {
+      "decisionView": "notes",
+      "command": "ResolveCollision",
+      "keyDerivation": {
+        "noteId": "input.noteId"
+      },
+      "keysUnresolved": [
+        "questionId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "noteId"
+        ],
+        "bodyFields": [
+          "resolution",
+          "newName"
+        ]
+      },
+      "affectedFields": [
+        "noteId"
+      ],
+      "op": "update"
+    },
+    "POST /api/note/:noteId/update-note-content": {
+      "decisionView": "notes",
+      "command": "UpdateNoteContent",
+      "keyDerivation": {
+        "noteId": "input.noteId"
+      },
+      "keysUnresolved": [
+        "questionId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "noteId"
+        ],
+        "bodyFields": [
+          "content"
+        ]
+      },
+      "affectedFields": [
+        "content",
+        "noteId"
+      ],
+      "op": "update"
+    },
+    "POST /api/organization-member/accept-tenant-invitation": {
+      "decisionView": "tenant-member-joins",
+      "command": "AcceptTenantInvitation",
+      "keyDerivation": {
+        "tenantId": "input.tenantId"
+      },
+      "warnings": [
+        "T02-carrier: 持久化键(randomUUID)≠领域键(body 输入)，视图键取值不受影响；重复提交将产生孤儿聚合——归 T02 族"
+      ],
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "tenantId",
+          "userId"
+        ]
+      },
+      "affectedFields": [
+        "tenantId"
+      ],
+      "op": "multiRow"
+    },
+    "POST /api/organization-member/invite-tenant-member": {
+      "decisionView": "tenant-invitations",
+      "command": "InviteTenantMember",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "tenantId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "userId",
+          "department",
+          "jobTitle",
+          "invitedBy",
+          "expiresAt"
+        ]
+      },
+      "affectedFields": [],
+      "op": "multiRow"
+    },
+    "POST /api/organization-member/remove-tenant-member": {
+      "decisionView": "tenant-members-removed",
+      "command": "RemoveTenantMember",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "tenantId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "userId",
+          "reason"
+        ]
+      },
+      "affectedFields": [],
+      "op": "multiRow"
+    },
+    "POST /api/organization-member/resend-invitation": {
+      "decisionView": "tenant-invitations-resent",
+      "command": "ResendInvitation",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "tenantId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "userId",
+          "newExpiresAt"
+        ]
+      },
+      "affectedFields": [],
+      "op": "multiRow"
+    },
+    "POST /api/organization-member/revoke-invitation": {
+      "decisionView": "tenant-invitations-revoked",
+      "command": "RevokeInvitation",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "tenantId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "userId"
+        ]
+      },
+      "affectedFields": [],
+      "op": "multiRow"
+    },
+    "POST /api/project/:projectId/assign-project-owner": {
+      "decisionView": "projects",
+      "command": "AssignProjectOwner",
+      "keyDerivation": {
+        "projectId": "input.projectId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "projectId"
+        ],
+        "bodyFields": [
+          "ownerUserId"
+        ]
+      },
+      "affectedFields": [
+        "ownerUserId",
+        "projectId"
+      ],
+      "op": "update"
+    },
+    "POST /api/project/:projectId/cancel-project": {
+      "decisionView": "projects",
+      "command": "CancelProject",
+      "keyDerivation": {
+        "projectId": "input.projectId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "projectId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "projectId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/project/:projectId/complete-project": {
+      "decisionView": "projects",
+      "command": "CompleteProject",
+      "keyDerivation": {
+        "projectId": "input.projectId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "projectId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "projectId"
+      ],
+      "op": "update"
+    },
+    "POST /api/project/:projectId/initiate-project": {
+      "decisionView": "projects",
+      "command": "InitiateProject",
+      "keyDerivation": {
+        "projectId": "input.projectId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "projectId"
+        ],
+        "bodyFields": [
+          "workgroupId",
+          "name",
+          "description",
+          "projectOwnerUserId",
+          "workshopName"
+        ]
+      },
+      "affectedFields": [
+        "description",
+        "name",
+        "projectId",
+        "tenantId",
+        "workgroupId"
+      ],
+      "op": "create"
+    },
+    "POST /api/project/:projectId/pause-project": {
+      "decisionView": "project-pauses",
+      "command": "PauseProject",
+      "keyDerivation": {
+        "projectId": "input.projectId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "projectId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "projectId"
+      ],
+      "op": "update"
+    },
+    "POST /api/project/:projectId/resume-project": {
+      "decisionView": "project-pauses",
+      "command": "ResumeProject",
+      "keyDerivation": {
+        "projectId": "input.projectId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "projectId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "projectId"
+      ],
+      "op": "update"
+    },
+    "POST /api/project/:projectId/update-project-description": {
+      "decisionView": "projects",
+      "command": "UpdateProjectDescription",
+      "keyDerivation": {
+        "projectId": "input.projectId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "projectId"
+        ],
+        "bodyFields": [
+          "description"
+        ]
+      },
+      "affectedFields": [
+        "description",
+        "projectId"
+      ],
+      "op": "update"
+    },
+    "POST /api/question/:questionId/answer-question": {
+      "decisionView": "notes",
+      "command": "AnswerQuestion",
+      "keyDerivation": {
+        "questionId": "input.questionId"
+      },
+      "keysUnresolved": [
+        "noteId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "questionId"
+        ],
+        "bodyFields": [
+          "answer"
+        ]
+      },
+      "affectedFields": [
+        "answer",
+        "questionId"
+      ],
+      "op": "update"
+    },
+    "POST /api/question/:questionId/dismiss-question": {
+      "decisionView": "notes",
+      "command": "DismissQuestion",
+      "keyDerivation": {
+        "questionId": "input.questionId"
+      },
+      "keysUnresolved": [
+        "noteId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "questionId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "questionId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/question/raise-question": {
+      "decisionView": "notes",
+      "command": "RaiseQuestion",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "noteId",
+        "questionId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "sessionId",
+          "externalId",
+          "boardId",
+          "content",
+          "linkedNoteIds"
+        ]
+      },
+      "affectedFields": [
+        "boardId",
+        "content",
+        "externalId",
+        "linkedNoteIds",
+        "questionId",
+        "sessionId",
+        "tenantId"
+      ],
+      "op": "create"
+    },
+    "POST /api/question/:questionId/reopen-question": {
+      "decisionView": "notes",
+      "command": "ReopenQuestion",
+      "keyDerivation": {
+        "questionId": "input.questionId"
+      },
+      "keysUnresolved": [
+        "noteId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "questionId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "questionId"
+      ],
+      "op": "update"
+    },
+    "POST /api/relation/relate-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "RelateConcept",
+      "keyDerivation": {
+        "edgeId": "input.edgeId"
+      },
+      "keysUnresolved": [
+        "conceptId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "edgeId",
+          "sourceId",
+          "targetId",
+          "relationType",
+          "condition",
+          "mapping",
+          "order",
+          "metadata"
+        ]
+      },
+      "affectedFields": [
+        "condition",
+        "createdAt",
+        "edgeId",
+        "mapping",
+        "metadata",
+        "order",
+        "relationType",
+        "sourceId",
+        "targetId"
+      ],
+      "op": "create"
+    },
+    "POST /api/relation/unrelate-concept": {
+      "decisionView": "parked-knowledge",
+      "command": "UnrelateConcept",
+      "keyDerivation": {
+        "edgeId": "input.edgeId"
+      },
+      "keysUnresolved": [
+        "conceptId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "edgeId",
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "edgeId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/relation/update-relation": {
+      "decisionView": "parked-knowledge",
+      "command": "UpdateRelation",
+      "keyDerivation": {
+        "edgeId": "input.edgeId"
+      },
+      "keysUnresolved": [
+        "conceptId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "edgeId",
+          "condition",
+          "mapping",
+          "order",
+          "metadata"
+        ]
+      },
+      "affectedFields": [
+        "edgeId"
+      ],
+      "op": "update"
+    },
+    "POST /api/session/:sessionId/assign-session-role": {
+      "decisionView": "sessions",
+      "command": "AssignSessionRole",
+      "keyDerivation": {
+        "sessionId": "input.sessionId"
+      },
+      "keysUnresolved": [
+        "stageId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "sessionId"
+        ],
+        "bodyFields": [
+          "userId",
+          "role"
+        ]
+      },
+      "affectedFields": [
+        "sessionId",
+        "stageId"
+      ],
+      "op": "update"
+    },
+    "POST /api/session/:sessionId/complete-session": {
+      "decisionView": "sessions",
+      "command": "CompleteSession",
+      "keyDerivation": {
+        "sessionId": "input.sessionId"
+      },
+      "keysUnresolved": [
+        "stageId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "sessionId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "sessionId",
+        "stageId"
+      ],
+      "op": "update"
+    },
+    "POST /api/session/:sessionId/invite-observer": {
+      "decisionView": "sessions",
+      "command": "InviteObserver",
+      "keyDerivation": {
+        "sessionId": "input.sessionId"
+      },
+      "keysUnresolved": [
+        "stageId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "sessionId"
+        ],
+        "bodyFields": [
+          "userId"
+        ]
+      },
+      "affectedFields": [
+        "sessionId",
+        "stageId"
+      ],
+      "op": "create"
+    },
+    "POST /api/session/:sessionId/invite-participant": {
+      "decisionView": "sessions",
+      "command": "InviteParticipant",
+      "keyDerivation": {
+        "sessionId": "input.sessionId"
+      },
+      "keysUnresolved": [
+        "stageId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "sessionId"
+        ],
+        "bodyFields": [
+          "userId"
+        ]
+      },
+      "affectedFields": [
+        "sessionId",
+        "stageId"
+      ],
+      "op": "create"
+    },
+    "POST /api/session/:sessionId/open-session": {
+      "decisionView": "sessions",
+      "command": "OpenSession",
+      "keyDerivation": {
+        "stageId": "input.stageId",
+        "sessionId": "input.sessionId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "sessionId"
+        ],
+        "bodyFields": [
+          "stageId"
+        ]
+      },
+      "affectedFields": [
+        "sessionId",
+        "stageId",
+        "tenantId"
+      ],
+      "op": "create"
+    },
+    "POST /api/session/:sessionId/prepare-session": {
+      "decisionView": "sessions",
+      "command": "PrepareSession",
+      "keyDerivation": {
+        "sessionId": "input.sessionId"
+      },
+      "keysUnresolved": [
+        "stageId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "sessionId"
+        ],
+        "bodyFields": [
+          "participantUserIds",
+          "observerUserIds"
+        ]
+      },
+      "affectedFields": [
+        "observerUserIds",
+        "participantUserIds",
+        "sessionId",
+        "stageId"
+      ],
+      "op": "update"
+    },
+    "POST /api/stage/:stageId/activate-stage": {
+      "decisionView": "sessions",
+      "command": "ActivateStage",
+      "keyDerivation": {
+        "stageId": "input.stageId",
+        "sessionId": "input.sessionId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "stageId"
+        ],
+        "bodyFields": [
+          "sessionId"
+        ]
+      },
+      "affectedFields": [
+        "sessionId",
+        "stageId",
+        "tenantId"
+      ],
+      "op": "update"
+    },
+    "POST /api/subdomain/:subdomainId/classify-subdomain": {
+      "decisionView": "subdomains",
+      "command": "ClassifySubdomain",
+      "keyDerivation": {
+        "subdomainId": "input.subdomainId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "subdomainId"
+        ],
+        "bodyFields": [
+          "name",
+          "description",
+          "kind",
+          "buyOrBuild",
+          "aggregateIds"
+        ]
+      },
+      "affectedFields": [
+        "aggregateIds",
+        "buyOrBuild",
+        "description",
+        "kind",
+        "name",
+        "subdomainId",
+        "tenantId"
+      ],
+      "op": "create"
+    },
+    "POST /api/subdomain/:subdomainId/update-subdomain-kind": {
+      "decisionView": "subdomains",
+      "command": "UpdateSubdomainKind",
+      "keyDerivation": {
+        "subdomainId": "input.subdomainId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "subdomainId"
+        ],
+        "bodyFields": [
+          "kind"
+        ]
+      },
+      "affectedFields": [
+        "kind",
+        "subdomainId"
+      ],
+      "op": "update"
+    },
+    "POST /api/tenant/:tenantId/archive-tenant": {
+      "decisionView": "tenants",
+      "command": "ArchiveTenant",
+      "keyDerivation": {
+        "tenantId": "input.tenantId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "tenantId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "tenantId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/tenant/:tenantId/assign-tenant-owner": {
+      "decisionView": "tenants",
+      "command": "AssignTenantOwner",
+      "keyDerivation": {
+        "tenantId": "input.tenantId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "tenantId"
+        ],
+        "bodyFields": [
+          "newOwnerUserId"
+        ]
+      },
+      "affectedFields": [
+        "tenantId"
+      ],
+      "op": "update"
+    },
+    "POST /api/tenant/onboard-tenant": {
+      "decisionView": "tenants",
+      "command": "OnboardTenant",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "tenantId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "randomUUID",
+        "pathParams": [],
+        "bodyFields": [
+          "name",
+          "ownerUserId"
+        ]
+      },
+      "affectedFields": [
+        "name",
+        "ownerUserId",
+        "tenantId"
+      ],
+      "op": "create"
+    },
+    "POST /api/tenant/:tenantId/resume-tenant": {
+      "decisionView": "tenants",
+      "command": "ResumeTenant",
+      "keyDerivation": {
+        "tenantId": "input.tenantId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "tenantId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "tenantId"
+      ],
+      "op": "update"
+    },
+    "POST /api/tenant/:tenantId/suspend-tenant": {
+      "decisionView": "tenants",
+      "command": "SuspendTenant",
+      "keyDerivation": {
+        "tenantId": "input.tenantId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "tenantId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "tenantId"
+      ],
+      "op": "update"
+    },
+    "POST /api/user/:userId/deactivate-user": {
+      "decisionView": "deactivated-users",
+      "command": "DeactivateUser",
+      "keyDerivation": {
+        "userId": "input.userId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "userId"
+        ],
+        "bodyFields": [
+          "reason"
+        ]
+      },
+      "affectedFields": [
+        "userId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/user/:userId/reactivate-user": {
+      "decisionView": "deactivated-users",
+      "command": "ReactivateUser",
+      "keyDerivation": {
+        "userId": "input.userId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "userId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "userId"
+      ],
+      "op": "update"
+    },
+    "POST /api/user/register-user": {
+      "decisionView": "user-profiles",
+      "command": "RegisterUser",
+      "keyDerivation": {},
+      "keysUnresolved": [
+        "userId"
+      ],
+      "classification": "degraded",
+      "_evidence": {
+        "addressing": "body-id",
+        "pathParams": [],
+        "bodyFields": [
+          "username",
+          "email",
+          "password",
+          "displayName",
+          "authMethod",
+          "tenantName",
+          "workgroupName",
+          "phoneNumber"
+        ]
+      },
+      "affectedFields": [
+        "authMethod",
+        "displayName",
+        "email",
+        "userId"
+      ],
+      "op": "create"
+    },
+    "POST /api/user/:userId/update-user-profile": {
+      "decisionView": "user-profiles",
+      "command": "UpdateUserProfile",
+      "keyDerivation": {
+        "userId": "input.userId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "userId"
+        ],
+        "bodyFields": [
+          "displayName",
+          "email"
+        ]
+      },
+      "affectedFields": [
+        "displayName",
+        "email",
+        "phoneNumber",
+        "userId"
+      ],
+      "op": "update"
+    },
+    "POST /api/workgroup/:workgroupId/accept-workgroup-invitation": {
+      "decisionView": "workgroup-invitations",
+      "command": "AcceptWorkgroupInvitation",
+      "keyDerivation": {
+        "workgroupId": "input.workgroupId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workgroupId"
+        ],
+        "bodyFields": [
+          "userId"
+        ]
+      },
+      "affectedFields": [
+        "workgroupId"
+      ],
+      "op": "create"
+    },
+    "POST /api/workgroup/:workgroupId/archive-workgroup": {
+      "decisionView": "workgroups",
+      "command": "ArchiveWorkgroup",
+      "keyDerivation": {
+        "workgroupId": "input.workgroupId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workgroupId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "workgroupId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/workgroup/:workgroupId/assign-workgroup-owner": {
+      "decisionView": "workgroups",
+      "command": "AssignWorkgroupOwner",
+      "keyDerivation": {
+        "workgroupId": "input.workgroupId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workgroupId"
+        ],
+        "bodyFields": [
+          "ownerUserId"
+        ]
+      },
+      "affectedFields": [
+        "ownerUserId",
+        "workgroupId"
+      ],
+      "op": "update"
+    },
+    "POST /api/workgroup/:workgroupId/create-workgroup": {
+      "decisionView": "workgroups",
+      "command": "CreateWorkgroup",
+      "keyDerivation": {
+        "workgroupId": "input.workgroupId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workgroupId"
+        ],
+        "bodyFields": [
+          "name"
+        ]
+      },
+      "affectedFields": [
+        "name",
+        "tenantId",
+        "workgroupId"
+      ],
+      "op": "update"
+    },
+    "POST /api/workgroup/:workgroupId/invite-workgroup-member": {
+      "decisionView": "workgroup-invitations",
+      "command": "InviteWorkgroupMember",
+      "keyDerivation": {
+        "workgroupId": "input.workgroupId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workgroupId"
+        ],
+        "bodyFields": [
+          "userId"
+        ]
+      },
+      "affectedFields": [
+        "workgroupId"
+      ],
+      "op": "create"
+    },
+    "POST /api/workgroup/:workgroupId/remove-workgroup-member": {
+      "decisionView": "workgroup-invitations",
+      "command": "RemoveWorkgroupMember",
+      "keyDerivation": {
+        "workgroupId": "input.workgroupId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workgroupId"
+        ],
+        "bodyFields": [
+          "userId"
+        ]
+      },
+      "affectedFields": [
+        "workgroupId"
+      ],
+      "op": "delete"
+    },
+    "POST /api/workgroup/:workgroupId/update-workgroup-name": {
+      "decisionView": "workgroups",
+      "command": "UpdateWorkgroupName",
+      "keyDerivation": {
+        "workgroupId": "input.workgroupId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workgroupId"
+        ],
+        "bodyFields": [
+          "name"
+        ]
+      },
+      "affectedFields": [
+        "name",
+        "workgroupId"
+      ],
+      "op": "update"
+    },
+    "POST /api/workshop/:workshopId/complete-workshop": {
+      "decisionView": "workshops",
+      "command": "CompleteWorkshop",
+      "keyDerivation": {
+        "workshopId": "input.workshopId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workshopId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "completedAt",
+        "workshopId"
+      ],
+      "op": "update"
+    },
+    "POST /api/workshop/:workshopId/schedule-workshop": {
+      "decisionView": "workshops",
+      "command": "ScheduleWorkshop",
+      "keyDerivation": {
+        "workshopId": "input.workshopId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workshopId"
+        ],
+        "bodyFields": [
+          "projectId",
+          "scheduledAt"
+        ]
+      },
+      "affectedFields": [
+        "projectId",
+        "scheduledAt",
+        "tenantId",
+        "workshopId"
+      ],
+      "op": "create"
+    },
+    "POST /api/workshop/:workshopId/start-workshop": {
+      "decisionView": "workshops",
+      "command": "StartWorkshop",
+      "keyDerivation": {
+        "workshopId": "input.workshopId"
+      },
+      "classification": "ok",
+      "_evidence": {
+        "addressing": "path-id",
+        "pathParams": [
+          "workshopId"
+        ],
+        "bodyFields": []
+      },
+      "affectedFields": [
+        "startedAt",
+        "workshopId"
+      ],
+      "op": "update"
+    }
+  }
+}

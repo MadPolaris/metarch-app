@@ -27,13 +27,14 @@ object FsmDefinitionProtocol {
    */
   case class EstablishFsmDefinition(fsmId: Id, confirmedBy: String, triggeredBy: String, replyTo: ActorRef[EstablishFsmDefinitionReply]) extends FsmDefinitionCommandFamily
   /**
+   * @param tenantId  @knowledge 32e4137f-3a76-4eea-9d68-5528105d6ffd
    * @param fsmId  @knowledge fc8bc783-c74a-4b87-b1ad-9a4430e9045f@07eac5316c8517a9
    * @param aggregateName  @knowledge 40544018-477a-44e0-9cf8-96c5cf855730@5d1ccfe79cf1cf61
    * @param states  @knowledge de91b2a0-03b5-4bdc-a647-9e23f0ca2ff4@3d32821eaeb1f4b4
    * @param transitions  @knowledge 57ec43eb-8950-4682-97de-f56c19a02870@4f356e03e59a88d9
    * @param createdBy  @knowledge a0b6fcb3-bc69-4b5a-a3f4-b24ee3acb8d5@e5e6288c99238679
    */
-  case class ProposeFsmDefinition(fsmId: Id, aggregateName: String, states: List[FsmStateDef], transitions: List[FsmTransition], createdBy: String, triggeredBy: String, replyTo: ActorRef[ProposeFsmDefinitionReply]) extends FsmDefinitionCommandFamily
+  case class ProposeFsmDefinition(tenantId: Id, fsmId: Id, aggregateName: String, states: List[FsmStateDef], transitions: List[FsmTransition], createdBy: String, triggeredBy: String, replyTo: ActorRef[ProposeFsmDefinitionReply]) extends FsmDefinitionCommandFamily
   /**
    * @param fsmId  @knowledge 39f6f2b9-57f4-4991-9c1e-627456a8c01e@a90caba3f41201ff
    * @param states  @knowledge 24bcf7d8-1bfb-4974-be33-9b0b1ae23c2c@6c852ab378f6de65

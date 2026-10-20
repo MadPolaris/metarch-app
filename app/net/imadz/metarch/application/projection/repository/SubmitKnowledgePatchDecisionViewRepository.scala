@@ -6,6 +6,7 @@ import com.google.inject.ImplementedBy
 import java.time.Instant
 import javax.inject.Inject
 import net.imadz.metarch.application.projection.repository.SubmitKnowledgePatchDecisionViewTable.SubmitKnowledgePatchDecisionView
+import net.imadz.metarch.domain.values.CatalogConflictSet
 import net.imadz.metarch.domain.values.ConceptDelta
 import net.imadz.metarch.domain.values.RelationDelta
 import net.imadz.metarch.infrastructure.repositories.projection.SubmitKnowledgePatchDecisionViewMongoRepositoryImpl
@@ -28,7 +29,7 @@ object SubmitKnowledgePatchDecisionViewTable {
  * @param status  @knowledge c1b7e79c-a79d-47e9-9eb0-acd4f0c2a061@022d8a928cdc6124
  * @param tenantId 所属组织  @knowledge 80074335-f65b-46a5-becd-459b6297d7d0@77800683ba9402c7
  */
-case class SubmitKnowledgePatchDecisionView(catalogId: String, concepts: List[ConceptDelta], conflictSet: String, contextId: String, createdAt: Option[Instant], createdBy: String, mergedAt: Option[Instant], parentPatchId: String, patchId: String, relations: List[RelationDelta], sessionId: String, status: String, tenantId: String) {
+case class SubmitKnowledgePatchDecisionView(catalogId: String, concepts: List[ConceptDelta], conflictSet: CatalogConflictSet, contextId: String, createdAt: Option[Instant], createdBy: String, mergedAt: Option[Instant], parentPatchId: String, patchId: String, relations: List[RelationDelta], sessionId: String, status: String, tenantId: String) {
 
 }
 }

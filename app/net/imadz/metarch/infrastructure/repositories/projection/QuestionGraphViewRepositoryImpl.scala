@@ -16,13 +16,13 @@ import scalikejdbc._
 @Singleton
 class QuestionGraphViewRepositoryImpl extends QuestionGraphViewRepository {
 
-  override def upsertNode(key: String, props: Map[String, String]): Unit = {
+  override def upsertNode(key: String, props: Map[String, Any]): Unit = {
     // ==== BEGIN MANUAL ====
     GraphMutationExecutor.apply(GraphMutationExecutor.UpsertNode("Question", "questionId", s"ws:$key", props), GraphMutationExecutor.ExecutionMode.Strict)
     // ==== END MANUAL ====
   }
 
-  override def updateNodeProps(key: String, props: Map[String, String]): Unit = {
+  override def updateNodeProps(key: String, props: Map[String, Any]): Unit = {
     // ==== BEGIN MANUAL ====
     GraphMutationExecutor.apply(GraphMutationExecutor.UpdateNodeProps("Question", "questionId", s"ws:$key", props), GraphMutationExecutor.ExecutionMode.Strict)
     // ==== END MANUAL ====

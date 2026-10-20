@@ -1,0 +1,10 @@
+{
+  "name": "process.family",
+  "description": "过程族跨域问答（D6 四面锚定·2026-09-19）：给定族名，返回两侧证据——①**行为面**：elab（engplane-lab 作用域）中 processFamily 锚到该族的对象及其决策/动作类型/实现的节点链；②**执行面**：该族的 journal 事件统计（由 generated/journal-index.json 汇入的 EngplaneJournalFamily 节点，含事件计数与 kind 直方图）。回答「这个族被怎么建模、实际跑了多少次」——执行面↔行为面互查的机械底座。空结果的语义＝**本图无此路径**（不是「系统中不存在」·负断言纪律）。",
+  "doc": "EP_Engplane_Workshop D6 四面锚定落批（2026-09-19）。数据依赖：Engplane* 节点＝tools/engineering_domain/publish.mjs 发布（tenantId=engplane-lab）；EngplaneJournalFamily 节点＝journal_index.mjs 汇入后重发布。与 impact.aggregate（业务域影响面）/ agg.relates（战略级）不同层——本模板服务于工程过程域的「锚定面」查询。",
+  "params": {
+    "family": { "type": "string", "required": true, "desc": "九族之一（orchestration-pipeline / verification-gate / loop-closure / periodic-process / disciplined-skill / one-off-surgery / runtime-service / archaeology / measurement-instrument）" }
+  },
+  "cypher": "query.cypher",
+  "golden": "golden.json"
+}

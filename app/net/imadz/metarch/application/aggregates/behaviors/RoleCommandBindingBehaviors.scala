@@ -19,7 +19,7 @@ object RoleCommandBindingBehaviors extends RoleCommandBindingCommandHelpers {
   def apply: RoleCommandBindingAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
 
   private def defaultBehaviors(state: RoleCommandBindingState): PartialFunction[RoleCommandBindingCommandFamily, Effect[RoleCommandBindingEvent, RoleCommandBindingState]] = {
-    case BindCommand(replyTo) =>
+    case _: BindCommand =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -30,7 +30,7 @@ object RoleCommandBindingBehaviors extends RoleCommandBindingCommandHelpers {
       <<< AI_PROMPT_END
       */
       ???
-    case UnbindCommand(replyTo) =>
+    case _: UnbindCommand =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

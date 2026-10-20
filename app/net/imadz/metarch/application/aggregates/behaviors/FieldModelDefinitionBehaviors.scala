@@ -19,7 +19,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
   def apply: FieldModelDefinitionAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
 
   private def defaultBehaviors(state: FieldModelDefinitionState): PartialFunction[FieldModelDefinitionCommandFamily, Effect[FieldModelDefinitionEvent, FieldModelDefinitionState]] = {
-    case AddCommandParameter(replyTo) =>
+    case _: AddCommandParameter =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -30,7 +30,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case AddEventPayload(replyTo) =>
+    case _: AddEventPayload =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -41,7 +41,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case AddWrittenBy(replyTo) =>
+    case _: AddWrittenBy =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -52,7 +52,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case CutWrittenBy(replyTo) =>
+    case _: CutWrittenBy =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -63,7 +63,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case DeclareCommand(replyTo) =>
+    case _: DeclareCommand =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -74,7 +74,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case DeclareEvent(replyTo) =>
+    case _: DeclareEvent =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -85,7 +85,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case DeclareFieldModel(replyTo) =>
+    case _: DeclareFieldModel =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -96,7 +96,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case DeclareRelation(replyTo) =>
+    case _: DeclareRelation =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -107,7 +107,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case DeclareStateField(replyTo) =>
+    case _: DeclareStateField =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -118,7 +118,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case DeclareStateGate(replyTo) =>
+    case _: DeclareStateGate =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -129,7 +129,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case PatchAggregateStatus(replyTo) =>
+    case _: PatchAggregateStatus =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -140,7 +140,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveCommand(replyTo) =>
+    case _: RemoveCommand =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -151,7 +151,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveEvent(replyTo) =>
+    case _: RemoveEvent =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -162,7 +162,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveFieldModel(replyTo) =>
+    case _: RemoveFieldModel =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -173,7 +173,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveRelation(replyTo) =>
+    case _: RemoveRelation =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -184,7 +184,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveStateField(replyTo) =>
+    case _: RemoveStateField =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -195,7 +195,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveStateGate(replyTo) =>
+    case _: RemoveStateGate =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -206,7 +206,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case RenameDescription(replyTo) =>
+    case _: RenameDescription =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -217,7 +217,7 @@ object FieldModelDefinitionBehaviors extends FieldModelDefinitionCommandHelpers 
       <<< AI_PROMPT_END
       */
       ???
-    case ReplaceWrittenBy(replyTo) =>
+    case _: ReplaceWrittenBy =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

@@ -46,5 +46,11 @@ trait UpdateUserProfileDecisionViewRepository {
   def findAll(): Future[List[UpdateUserProfileDecisionView]]
   // Logic: 查全部 UpdateUserProfileDecisionView 行
 
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[UpdateUserProfileDecisionView]]
+  // Logic: 按 tenantId 分页查 UpdateUserProfileDecisionView（SQL 级租户下推·limit/offset）
+
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 UpdateUserProfileDecisionView（分页 total）
+
 }
 

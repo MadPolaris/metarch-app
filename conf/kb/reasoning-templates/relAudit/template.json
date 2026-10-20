@@ -1,0 +1,11 @@
+{
+  "name": "relAudit",
+  "description": "本体公理白名单校验：对图做公理逐条审计，返回违例清单（cmdNoTarget＝命令必有落点聚合；evtNoSource＝事件必有触发源〔EMITS 入边或 timer/externalSystem TRIGGERS〕；foldsMisdirected＝FOLDS_IN 全边必须 event→aggregate）。",
+  "doc": "kn_kb_storage_plan §6.1 本体公理检查（M0 模板 3/3）。REL 趋零与 statusEnum 可达性未入本模板：前者为 graph_check 趋零指标（非违例语义），后者依赖 assignments 语义待 M2。",
+  "params": {
+    "tenant":   { "type": "string", "required": true, "desc": "租户键（默认 root）" },
+    "project":  { "type": "string", "required": true, "desc": "项目键（默认 metarch）" }
+  },
+  "cypher": "query.cypher",
+  "golden": "golden.json"
+}

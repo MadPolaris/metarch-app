@@ -56,5 +56,17 @@ trait AcceptTenantInvitationDecisionViewRepository {
   def findAll(): Future[List[AcceptTenantInvitationDecisionView]]
   // Logic: 查全部 AcceptTenantInvitationDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 77bfb2a2-a48b-48af-9d25-fad038ced6c7@aaf494d15aa63a46
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[AcceptTenantInvitationDecisionView]]
+  // Logic: 按 tenantId 分页查 AcceptTenantInvitationDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 77bfb2a2-a48b-48af-9d25-fad038ced6c7@aaf494d15aa63a46
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 AcceptTenantInvitationDecisionView（分页 total）
+
 }
 

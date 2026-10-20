@@ -49,7 +49,7 @@ class FsmDefinitionApiController @Inject() (api: net.imadz.common.auth.Endpoint,
           IdGuard.parse("fsmId" -> req.fsmId) match {
             case Right(Seq(fsmCid)) =>
           repository.entityRef(fsmCid.toString).ask {
-            (replyTo: akka.actor.typed.ActorRef[ProposeFsmDefinitionReply]) => ProposeFsmDefinition(fsmCid, req.aggregateName, req.states, req.transitions, req.createdBy, ts.userId, replyTo)
+            (replyTo: akka.actor.typed.ActorRef[ProposeFsmDefinitionReply]) => ProposeFsmDefinition(net.imadz.common.Id.of(ts.tenantId), fsmCid, req.aggregateName, req.states, req.transitions, req.createdBy, ts.userId, replyTo)
           }.map { reply =>
             reply.error.fold[Either[net.imadz.common.auth.ApiError, net.imadz.metarch.infrastructure.api.OkReceipt]](
               Right(net.imadz.metarch.infrastructure.api.OkReceipt(fsmCid.toString, play.api.libs.json.JsNull))

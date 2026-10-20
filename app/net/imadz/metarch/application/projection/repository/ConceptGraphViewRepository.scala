@@ -4,6 +4,7 @@ package net.imadz.metarch.application.projection.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
+import net.imadz.common.CommonTypes.Id
 import net.imadz.metarch.infrastructure.repositories.projection.ConceptGraphViewRepositoryImpl
 import scala.collection.immutable.Map
 
@@ -22,7 +23,7 @@ object ConceptGraphViewTable {
  * @param status 状态机 ESTABLISHED|PARKED|DEPRECATED  @knowledge 8221d20d-1626-4dae-8074-361e88a93c30@77d1347f77b154a2
  * @param tenantId 租户戳  @knowledge 5e65d570-a1e3-4eb0-b88f-35e7c5ee2c8b@bd604d51bacb15e4
  */
-case class ConceptGraphView(conceptId: String, contextId: String, deprecationReason: String, description: String, hasConflictWarning: String, kind: String, machineSpec: String, metadata: String, name: String, sourceStage: String, status: String, tenantId: String) {
+case class ConceptGraphView(conceptId: Id, contextId: Id, deprecationReason: String, description: String, hasConflictWarning: Boolean, kind: String, machineSpec: String, metadata: String, name: String, sourceStage: String, status: String, tenantId: Id) {
 
 }
 }
@@ -37,10 +38,10 @@ trait ConceptGraphViewRepository {
 
   import ConceptGraphViewTable._
 
-  def upsertNode(key: String, props: Map[String, String]): Unit
+  def upsertNode(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点 MERGE 写侧（Concept·kn: 空间前缀键）
 
-  def updateNodeProps(key: String, props: Map[String, String]): Unit
+  def updateNodeProps(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点属性 SET（Concept）
 
   def deleteNode(key: String, tenantId: String): Unit

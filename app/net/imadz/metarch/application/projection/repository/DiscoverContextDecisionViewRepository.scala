@@ -54,5 +54,23 @@ trait DiscoverContextDecisionViewRepository {
   def findAll(): Future[List[DiscoverContextDecisionView]]
   // Logic: 查全部 DiscoverContextDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 53ffa203-559b-44a4-8213-8a694a3980a4@5539ac4fe9c16f88
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[DiscoverContextDecisionView]]
+  // Logic: 按 tenantId 分页查 DiscoverContextDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 53ffa203-559b-44a4-8213-8a694a3980a4@5539ac4fe9c16f88
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 DiscoverContextDecisionView（分页 total）
+
+  /**
+   * @param subdomainId  @knowledge 4a0da02d-7c01-4f96-a62a-832ad94b8480@9b3be1fec81e6ef0
+   */
+  def findBySubdomainId(subdomainId: String): Future[List[DiscoverContextDecisionView]]
+  // Logic: 按 subdomainIds 元素查 DiscoverContextDecisionView 列表（子表元素索引）
+
 }
 

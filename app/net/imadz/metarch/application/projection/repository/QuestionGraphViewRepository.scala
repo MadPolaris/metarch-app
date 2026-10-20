@@ -4,6 +4,7 @@ package net.imadz.metarch.application.projection.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
+import net.imadz.common.CommonTypes.Id
 import net.imadz.metarch.infrastructure.repositories.projection.QuestionGraphViewRepositoryImpl
 import scala.collection.immutable.Map
 
@@ -16,7 +17,7 @@ object QuestionGraphViewTable {
  * @param status 状态机 raised|answered|dismissed  @knowledge 4b5583a1-263b-4a4f-ab66-f53447354f0f@d5d9025215a71a91
  * @param tenantId 租户戳  @knowledge 71879c25-0b04-425e-ba33-0c6e7e72afee@0f2a96181b13ed0d
  */
-case class QuestionGraphView(answer: String, content: String, questionId: String, sessionId: String, status: String, tenantId: String) {
+case class QuestionGraphView(answer: String, content: String, questionId: Id, sessionId: Id, status: String, tenantId: Id) {
 
 }
 }
@@ -31,10 +32,10 @@ trait QuestionGraphViewRepository {
 
   import QuestionGraphViewTable._
 
-  def upsertNode(key: String, props: Map[String, String]): Unit
+  def upsertNode(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点 MERGE 写侧（Question·ws: 空间前缀键）
 
-  def updateNodeProps(key: String, props: Map[String, String]): Unit
+  def updateNodeProps(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点属性 SET（Question）
 
   def deleteNode(key: String, tenantId: String): Unit

@@ -4,6 +4,7 @@ package net.imadz.metarch.application.projection.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
+import net.imadz.common.CommonTypes.Id
 import net.imadz.metarch.infrastructure.repositories.projection.SubdomainGraphViewRepositoryImpl
 import scala.collection.immutable.Map
 
@@ -16,7 +17,7 @@ object SubdomainGraphViewTable {
  * @param subdomainId 节点业务键（kn: 空间前缀）  @knowledge 3c5623bf-0691-4a13-9ced-b8ee6f3fb053@96dc6f8b81f0fef5
  * @param tenantId 租户戳  @knowledge 765b7427-63a7-4650-b9b2-e8dee66f0f92@c620010f3f466ddb
  */
-case class SubdomainGraphView(buyOrBuild: String, description: String, kind: String, name: String, subdomainId: String, tenantId: String) {
+case class SubdomainGraphView(buyOrBuild: String, description: String, kind: String, name: String, subdomainId: Id, tenantId: Id) {
 
 }
 }
@@ -31,10 +32,10 @@ trait SubdomainGraphViewRepository {
 
   import SubdomainGraphViewTable._
 
-  def upsertNode(key: String, props: Map[String, String]): Unit
+  def upsertNode(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点 MERGE 写侧（Subdomain·kn: 空间前缀键）
 
-  def updateNodeProps(key: String, props: Map[String, String]): Unit
+  def updateNodeProps(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点属性 SET（Subdomain）
 
   def deleteNode(key: String, tenantId: String): Unit

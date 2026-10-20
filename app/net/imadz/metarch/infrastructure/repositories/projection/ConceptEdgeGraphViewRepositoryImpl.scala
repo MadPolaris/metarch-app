@@ -16,13 +16,13 @@ import scalikejdbc._
 @Singleton
 class ConceptEdgeGraphViewRepositoryImpl extends ConceptEdgeGraphViewRepository {
 
-  override def upsertNode(key: String, props: Map[String, String]): Unit = {
+  override def upsertNode(key: String, props: Map[String, Any]): Unit = {
     // ==== BEGIN MANUAL ====
     GraphMutationExecutor.apply(GraphMutationExecutor.UpsertNode("ConceptEdge", "edgeId", s"kn:$key", props), GraphMutationExecutor.ExecutionMode.Strict)
     // ==== END MANUAL ====
   }
 
-  override def updateNodeProps(key: String, props: Map[String, String]): Unit = {
+  override def updateNodeProps(key: String, props: Map[String, Any]): Unit = {
     // ==== BEGIN MANUAL ====
     GraphMutationExecutor.apply(GraphMutationExecutor.UpdateNodeProps("ConceptEdge", "edgeId", s"kn:$key", props), GraphMutationExecutor.ExecutionMode.Strict)
     // ==== END MANUAL ====

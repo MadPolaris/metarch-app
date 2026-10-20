@@ -6,15 +6,20 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.CemEdgeDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.CemEdgeDecisionViewTable._
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsNull
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonArray
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scalikejdbc._
 
 /**
@@ -25,7 +30,7 @@ class CemEdgeDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoViewStor
 
   override def upsert(view: CemEdgeDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_cem_edges", "edgeId", view.edgeId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_cem_edges", "edgeId", view.edgeId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -34,7 +39,7 @@ class CemEdgeDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoViewStor
    */
   override def findByIdentity(edgeId: String): Future[Option[CemEdgeDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_cem_edges", edgeId, edgeId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_cem_edges", edgeId, edgeId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -43,13 +48,13 @@ class CemEdgeDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoViewStor
    */
   override def findByTenantId(tenantId: String): Future[List[CemEdgeDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_cem_edges", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_cem_edges", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[CemEdgeDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_cem_edges").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_cem_edges").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -58,7 +63,7 @@ class CemEdgeDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoViewStor
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[CemEdgeDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_cem_edges", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_cem_edges", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -67,46 +72,46 @@ class CemEdgeDecisionViewMongoRepositoryImpl @Inject() (viewStore: MongoViewStor
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_cem_edges").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_cem_edges", tenantId)
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: CemEdgeDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "aggregateName" -> Json.toJson(view.aggregateName),
-      "commandName" -> Json.toJson(view.commandName),
-      "confidence" -> Json.toJson(view.confidence),
-      "declaredAt" -> view.declaredAt.map(x => JsString(x.toString)),
-      "declaredBy" -> Json.toJson(view.declaredBy),
-      "edgeId" -> (if (view.edgeId == null) JsNull else Json.toJson(view.edgeId)),
-      "eventName" -> Json.toJson(view.eventName),
-      "retiredAt" -> view.retiredAt.map(x => JsString(x.toString)),
-      "retiredReason" -> Json.toJson(view.retiredReason),
-      "sources" -> Json.toJson(view.sources),
-      "status" -> Json.toJson(view.status),
-      "tenantId" -> Json.toJson(view.tenantId)))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: CemEdgeDecisionView): Document =
+    Document(
+      "aggregateName" -> bsonStr(view.aggregateName),
+      "commandName" -> bsonStr(view.commandName),
+      "confidence" -> bsonStr(view.confidence),
+      "declaredAt" -> (view.declaredAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "declaredBy" -> bsonStr(view.declaredBy),
+      "edgeId" -> ((if (view.edgeId == null) BsonNull() else BsonString(view.edgeId.toString)): org.mongodb.scala.bson.BsonValue),
+      "eventName" -> bsonStr(view.eventName),
+      "retiredAt" -> (view.retiredAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "retiredReason" -> bsonStr(view.retiredReason),
+      "sources" -> BsonArray(view.sources.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue))),
+      "status" -> bsonStr(view.status),
+      "tenantId" -> bsonStr(view.tenantId))
 
-  /** JSON 串 → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
-    * guards 型全表 500 事故的 Mongo 路免疫面；对照 store 侧 docsToJsons 只挡 toJson 失败，本层挡字段级 decode 失败） */
-  private def safeRowToView(json: String): Option[CemEdgeDecisionView] =
-    scala.util.Try(rowToView(json)).toOption
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
-  private def rowToView(json: String): CemEdgeDecisionView = {
-    val v = play.api.libs.json.Json.parse(json)
-    CemEdgeDecisionView(
-      aggregateName = (v \ "aggregateName").as[String],
-      commandName = (v \ "commandName").as[String],
-      confidence = (v \ "confidence").as[String],
-      declaredAt = (v \ "declaredAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "declaredAt").asOpt[String].map(java.time.Instant.parse)),
-      declaredBy = (v \ "declaredBy").as[String],
-      edgeId = (v \ "edgeId").asOpt[Id].getOrElse(null),
-      eventName = (v \ "eventName").as[String],
-      retiredAt = (v \ "retiredAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "retiredAt").asOpt[String].map(java.time.Instant.parse)),
-      retiredReason = (v \ "retiredReason").as[String],
-      sources = (v \ "sources").as[String],
-      status = (v \ "status").as[String],
-      tenantId = (v \ "tenantId").as[String])
-  }
+  /** Document → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
+    * guards 型全表 500 事故的 Mongo 路免疫面；本层挡字段级 decode 失败） */
+  private def safeRowToView(doc: Document): Option[CemEdgeDecisionView] =
+    scala.util.Try(rowFromDocument(doc)).toOption
+
+  private def rowFromDocument(doc: Document): CemEdgeDecisionView = CemEdgeDecisionView(
+      aggregateName = doc("aggregateName").asString().getValue,
+      commandName = doc("commandName").asString().getValue,
+      confidence = doc("confidence").asString().getValue,
+      declaredAt = doc.get("declaredAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      declaredBy = doc("declaredBy").asString().getValue,
+      edgeId = doc.get("edgeId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      eventName = doc("eventName").asString().getValue,
+      retiredAt = doc.get("retiredAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      retiredReason = doc("retiredReason").asString().getValue,
+      sources = doc.get("sources") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => elem.asString().getValue).toList; case _ => Nil },
+      status = doc("status").asString().getValue,
+      tenantId = doc("tenantId").asString().getValue)
 
 }

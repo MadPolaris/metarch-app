@@ -22,7 +22,11 @@ import net.imadz.metarch.domain.service.ContentFingerprintPort
  * status 按事件名词干匹配枚举（STATE_TRANSITION）；待确认项标 TODO + 审校清单（story/eventhandler_review.md）。
  */
 object ModelCatalogEventHandler {
-  def apply: ModelCatalogEventHandler = (state, event) => event match {
+  // 债④（2026-10-04·闭包形）：port 折叠点带参重载——装配点传实现，闭包捕获不可变。
+  def apply(adjudicator: ConceptDeltaAdjudicator, fingerprint: ContentFingerprintPort): ModelCatalogEventHandler = {
+    require(adjudicator != null, "adjudicator 未绑定");
+    require(fingerprint != null, "fingerprint 未绑定");
+    (state, event) => event match {
     // @knowledge 7fc97e4c-42c0-4e08-93a1-2e43690d4bb0@782de796446b8c2a
     case event: CatalogConflictDetected =>
       state.copy(tenantId = event.tenantId, status = "CONFLICT_DETECTED")
@@ -55,6 +59,7 @@ object ModelCatalogEventHandler {
 
     // @knowledge a2af36df-d47f-40eb-abd1-f11f5a39d1e6@ce05d83058ca7701
     case event: MetadataExported =>
+      // 因果溯源: MetadataConsumed（eventual）⇒ 本事件
       state.copy(tenantId = event.tenantId, exportedAt = event.timestamp, exportedBy = event.triggeredBy)
       // 待审: status（MetadataExported → 枚举值无法判定）；assembledAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；assembledBy（审计字段，本事件无同名载荷/词干专属/创建更新类）；releasedAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；releasedBy（审计字段，本事件无同名载荷/词干专属/创建更新类）；patchSessionIds（DERIVED：ApplyKnowledgePatch 的会话补丁去重累积（union(patchSessionIds, [sessionId])））；knowledgePackages（DERIVED：每次 ApplyKnowledgePatch 应用后由知识增量重组装（CatalogVersionReleased 时冻结））；payload 未映射: catalogId, manifest
 
@@ -63,5 +68,6 @@ object ModelCatalogEventHandler {
       state.copy(tenantId = event.tenantId, releasedAt = event.timestamp, releasedBy = event.triggeredBy, status = "RELEASED", version = event.version)
       // 待审: assembledAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；assembledBy（审计字段，本事件无同名载荷/词干专属/创建更新类）；exportedAt（审计字段，本事件无同名载荷/词干专属/创建更新类）；exportedBy（审计字段，本事件无同名载荷/词干专属/创建更新类）；patchSessionIds（DERIVED：ApplyKnowledgePatch 的会话补丁去重累积（union(patchSessionIds, [sessionId])））；knowledgePackages（DERIVED：每次 ApplyKnowledgePatch 应用后由知识增量重组装（CatalogVersionReleased 时冻结））；payload 未映射: catalogId
     case _ => state // 默认兜底
+    }
   }
 }

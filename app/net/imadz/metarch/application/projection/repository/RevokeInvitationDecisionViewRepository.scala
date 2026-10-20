@@ -56,5 +56,17 @@ trait RevokeInvitationDecisionViewRepository {
   def findAll(): Future[List[RevokeInvitationDecisionView]]
   // Logic: 查全部 RevokeInvitationDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge ebd1f2b0-7b48-43da-884f-842654d63fff@4518967eacf7aacc
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[RevokeInvitationDecisionView]]
+  // Logic: 按 tenantId 分页查 RevokeInvitationDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge ebd1f2b0-7b48-43da-884f-842654d63fff@4518967eacf7aacc
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 RevokeInvitationDecisionView（分页 total）
+
 }
 

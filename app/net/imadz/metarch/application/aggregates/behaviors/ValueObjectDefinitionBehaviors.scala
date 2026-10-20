@@ -19,7 +19,7 @@ object ValueObjectDefinitionBehaviors extends ValueObjectDefinitionCommandHelper
   def apply: ValueObjectDefinitionAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
 
   private def defaultBehaviors(state: ValueObjectDefinitionState): PartialFunction[ValueObjectDefinitionCommandFamily, Effect[ValueObjectDefinitionEvent, ValueObjectDefinitionState]] = {
-    case DeclareValueObject(replyTo) =>
+    case _: DeclareValueObject =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -30,7 +30,7 @@ object ValueObjectDefinitionBehaviors extends ValueObjectDefinitionCommandHelper
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveValueObject(replyTo) =>
+    case _: RemoveValueObject =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

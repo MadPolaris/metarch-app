@@ -28,7 +28,7 @@ class ConceptGraphViewOnConceptConflictWarningCreatedHandler @Inject() (conceptG
         // 图投影意图（元数据 referenceCode·graph 方言）：graph.updateNodeProps(key = event.conceptId, props = { hasConflictWarning = "true", tenantId = event.tenantId })
         event match {
           case ConceptEventPO.Event.ConceptConflictWarningCreated(po) =>
-            conceptGraphViewRepository.updateNodeProps(po.conceptId, Map("hasConflictWarning" -> "true", "tenantId" -> po.tenantId)) // 结构（label/keyName/keySpace 前缀/端点 match）烧在 ④Impl——Strict 悬空停车场
+            conceptGraphViewRepository.updateNodeProps(po.conceptId, Map("hasConflictWarning" -> true, "tenantId" -> po.tenantId)) // 结构（label/keyName/keySpace 前缀/端点 match）烧在 ④Impl——Strict 悬空停车场
           case _ => () // 非本投影关注事件
         }
         // ==== END MANUAL ====

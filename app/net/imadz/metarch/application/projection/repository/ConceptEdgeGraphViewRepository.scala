@@ -4,6 +4,7 @@ package net.imadz.metarch.application.projection.repository
 
 import com.google.inject.ImplementedBy
 import javax.inject.Inject
+import net.imadz.common.CommonTypes.Id
 import net.imadz.metarch.infrastructure.repositories.projection.ConceptEdgeGraphViewRepositoryImpl
 import scala.collection.immutable.Map
 
@@ -17,7 +18,7 @@ object ConceptEdgeGraphViewTable {
  * @param relationType 关系类型  @knowledge 4e04ba7d-a1aa-4b34-9a04-de4ebd1276cd@59d84dd694a7002b
  * @param tenantId 租户戳  @knowledge 4ad6f045-9ce7-452d-9e2e-daab6014f157@62da441f7bea6d7a
  */
-case class ConceptEdgeGraphView(condition: String, edgeId: String, mapping: String, metadata: String, order: String, relationType: String, tenantId: String) {
+case class ConceptEdgeGraphView(condition: String, edgeId: Id, mapping: String, metadata: String, order: Int, relationType: String, tenantId: Id) {
 
 }
 }
@@ -32,10 +33,10 @@ trait ConceptEdgeGraphViewRepository {
 
   import ConceptEdgeGraphViewTable._
 
-  def upsertNode(key: String, props: Map[String, String]): Unit
+  def upsertNode(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点 MERGE 写侧（ConceptEdge·kn: 空间前缀键）
 
-  def updateNodeProps(key: String, props: Map[String, String]): Unit
+  def updateNodeProps(key: String, props: Map[String, Any]): Unit
   // Logic: 图节点属性 SET（ConceptEdge）
 
   def deleteNode(key: String, tenantId: String): Unit

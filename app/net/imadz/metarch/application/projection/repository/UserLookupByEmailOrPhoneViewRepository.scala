@@ -52,5 +52,11 @@ trait UserLookupByEmailOrPhoneViewRepository {
   def findAll(): Future[List[UserLookupByEmailOrPhoneView]]
   // Logic: 查全部 UserLookupByEmailOrPhoneView 行
 
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[UserLookupByEmailOrPhoneView]]
+  // Logic: 按 tenantId 分页查 UserLookupByEmailOrPhoneView（SQL 级租户下推·limit/offset）
+
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 UserLookupByEmailOrPhoneView（分页 total）
+
 }
 

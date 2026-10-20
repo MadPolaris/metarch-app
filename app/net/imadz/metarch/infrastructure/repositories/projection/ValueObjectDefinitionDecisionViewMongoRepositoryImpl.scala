@@ -6,17 +6,21 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.ValueObjectDefinitionDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.ValueObjectDefinitionDecisionViewTable._
 import net.imadz.metarch.domain.values.VOMemberSpec
 import net.imadz.metarch.infrastructure.persistence.mongo.MongoViewStore
-import play.api.libs.json.JsNull
-import play.api.libs.json.JsString
-import play.api.libs.json.Json
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.BsonArray
+import org.mongodb.scala.bson.BsonDateTime
+import org.mongodb.scala.bson.BsonNull
+import org.mongodb.scala.bson.BsonString
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scalikejdbc._
 
 /**
@@ -27,7 +31,7 @@ class ValueObjectDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
 
   override def upsert(view: ValueObjectDefinitionDecisionView): Unit = {
     // ==== BEGIN MANUAL ====
-    viewStore.putDocument("view_value_object_definitions", "definitionId", view.definitionId.toString, viewToJson(view))
+    viewStore.putDocumentDoc("view_value_object_definitions", "definitionId", view.definitionId.toString, viewToDocument(view))
     // ==== END MANUAL ====
   }
 
@@ -36,7 +40,7 @@ class ValueObjectDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByIdentity(definitionId: String): Future[Option[ValueObjectDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByKey("view_value_object_definitions", definitionId, definitionId.toString).map(_.flatMap(safeRowToView))
+    viewStore.findByKeyDoc("view_value_object_definitions", definitionId, definitionId.toString).map(_.flatMap(safeRowToView))
     // ==== END MANUAL ====
   }
 
@@ -45,13 +49,13 @@ class ValueObjectDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByTenantId(tenantId: String): Future[List[ValueObjectDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByFields("view_value_object_definitions", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByFieldsDoc("view_value_object_definitions", Map("tenantId" -> tenantId)).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
   override def findAll(): Future[List[ValueObjectDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_value_object_definitions").map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findAllDoc("view_value_object_definitions").map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -60,7 +64,7 @@ class ValueObjectDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ValueObjectDefinitionDecisionView]] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findByTenantPaged("view_value_object_definitions", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
+    viewStore.findByTenantPagedDoc("view_value_object_definitions", tenantId, limit, offset).map(rows => rows.flatMap(safeRowToView).toList)
     // ==== END MANUAL ====
   }
 
@@ -69,36 +73,49 @@ class ValueObjectDefinitionDecisionViewMongoRepositoryImpl @Inject() (viewStore:
    */
   override def countByTenant(tenantId: String): Future[Long] = {
     // ==== BEGIN MANUAL ====
-    viewStore.findAll("view_value_object_definitions").map(rows => rows.flatMap(safeRowToView).count(_.tenantId == tenantId))
+    viewStore.countByTenant("view_value_object_definitions", tenantId)
     // ==== END MANUAL ====
   }
 
-/** DTO → JSON 串（视图行整取整写——Mongo 文档载体；字段级显式 codec） */
-  private def viewToJson(view: ValueObjectDefinitionDecisionView): String =
-    play.api.libs.json.Json.stringify(play.api.libs.json.Json.obj(
-      "declaredAt" -> view.declaredAt.map(x => JsString(x.toString)),
-      "declaredBy" -> Json.toJson(view.declaredBy),
-      "definitionId" -> (if (view.definitionId == null) JsNull else Json.toJson(view.definitionId)),
-      "members" -> Json.toJson(view.members),
-      "removedAt" -> view.removedAt.map(x => JsString(x.toString)),
-      "tenantId" -> Json.toJson(view.tenantId),
-      "voName" -> Json.toJson(view.voName)))
+/** DTO → BSON Document（视图行整取整写——字段级类型化 codec；Phase 2 R6） */
+  private def viewToDocument(view: ValueObjectDefinitionDecisionView): Document =
+    Document(
+      "declaredAt" -> (view.declaredAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "declaredBy" -> bsonStr(view.declaredBy),
+      "definitionId" -> ((if (view.definitionId == null) BsonNull() else BsonString(view.definitionId.toString)): org.mongodb.scala.bson.BsonValue),
+      "members" -> BsonArray(view.members.map(elem => (vOMemberSpecToDocument(elem).toBsonDocument: org.mongodb.scala.bson.BsonValue))),
+      "removedAt" -> (view.removedAt.map(x => BsonDateTime(x.toEpochMilli)).getOrElse(BsonNull()): org.mongodb.scala.bson.BsonValue),
+      "tenantId" -> bsonStr(view.tenantId),
+      "voName" -> bsonStr(view.voName))
 
-  /** JSON 串 → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
-    * guards 型全表 500 事故的 Mongo 路免疫面；对照 store 侧 docsToJsons 只挡 toJson 失败，本层挡字段级 decode 失败） */
-  private def safeRowToView(json: String): Option[ValueObjectDefinitionDecisionView] =
-    scala.util.Try(rowToView(json)).toOption
+  /** String 字段 → BSON（null 保真为 BsonNull，与 Phase 1 JsNull 口径一致） */
+  private def bsonStr(s: String): org.mongodb.scala.bson.BsonValue = if (s == null) BsonNull() else BsonString(s)
 
-  private def rowToView(json: String): ValueObjectDefinitionDecisionView = {
-    val v = play.api.libs.json.Json.parse(json)
-    ValueObjectDefinitionDecisionView(
-      declaredAt = (v \ "declaredAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "declaredAt").asOpt[String].map(java.time.Instant.parse)),
-      declaredBy = (v \ "declaredBy").as[String],
-      definitionId = (v \ "definitionId").asOpt[Id].getOrElse(null),
-      members = (v \ "members").asOpt[List[VOMemberSpec]].getOrElse(Nil),
-      removedAt = (v \ "removedAt").asOpt[Long].map(java.time.Instant.ofEpochMilli).orElse((v \ "removedAt").asOpt[String].map(java.time.Instant.parse)),
-      tenantId = (v \ "tenantId").as[String],
-      voName = (v \ "voName").as[String])
-  }
+  /** Document → DTO·毒行隔离 wrapper（S9 反例验证 2026-10-08：decode 失败＝单行披露跳过不炸集合——
+    * guards 型全表 500 事故的 Mongo 路免疫面；本层挡字段级 decode 失败） */
+  private def safeRowToView(doc: Document): Option[ValueObjectDefinitionDecisionView] =
+    scala.util.Try(rowFromDocument(doc)).toOption
+
+  private def rowFromDocument(doc: Document): ValueObjectDefinitionDecisionView = ValueObjectDefinitionDecisionView(
+      declaredAt = doc.get("declaredAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      declaredBy = doc("declaredBy").asString().getValue,
+      definitionId = doc.get("definitionId") match { case Some(v) if !v.isNull => Id.of(v.asString().getValue); case _ => null },
+      members = doc.get("members") match { case Some(v) if v.isArray => v.asArray().getValues.asScala.map(elem => vOMemberSpecFromDocument(Document(elem.asDocument()))).toList; case _ => Nil },
+      removedAt = doc.get("removedAt") match { case Some(v) if v.isDateTime => Some(java.time.Instant.ofEpochMilli(v.asDateTime().getValue)); case Some(v) if v.isInt64 => Some(java.time.Instant.ofEpochMilli(v.asInt64().getValue)); case Some(v) if v.isString => Some(java.time.Instant.parse(v.asString().getValue)); case _ => None },
+      tenantId = doc("tenantId").asString().getValue,
+      voName = doc("voName").asString().getValue)
+
+  private def vOMemberSpecToDocument(v: VOMemberSpec): Document =
+    Document(
+      "fieldName" -> bsonStr(v.fieldName),
+      "dataType" -> bsonStr(v.dataType),
+      "description" -> bsonStr(v.description),
+      "noteId" -> v.noteId.map(elem => (bsonStr(elem): org.mongodb.scala.bson.BsonValue)).getOrElse(BsonNull()))
+
+  private def vOMemberSpecFromDocument(doc: Document): VOMemberSpec = VOMemberSpec(
+      fieldName = doc("fieldName").asString().getValue,
+      dataType = doc("dataType").asString().getValue,
+      description = doc("description").asString().getValue,
+      noteId = doc.get("noteId") match { case Some(v) if !v.isNull => Some(v.asString().getValue); case _ => None })
 
 }

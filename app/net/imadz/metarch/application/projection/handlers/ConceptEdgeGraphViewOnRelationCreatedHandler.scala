@@ -28,7 +28,7 @@ class ConceptEdgeGraphViewOnRelationCreatedHandler @Inject() (conceptEdgeGraphVi
         // 图投影意图（元数据 referenceCode·graph 方言）：graph.upsertNode(key = event.edgeId, props = { relationType = event.relationType, condition = event.condition, mapping = event.mapping, order = event.order, metadata = event.metadata, tenantId = event.tenantId }); graph.mergeEdge(edgeType = "FROM", toKey = event.sourceId); graph.mergeEdge(edgeType = "TARGET", toKey = event.targetId)
         event match {
           case RelationEventPO.Event.RelationCreated(po) =>
-            conceptEdgeGraphViewRepository.upsertNode(po.edgeId, Map("relationType" -> po.relationType, "condition" -> po.condition, "mapping" -> po.mapping, "order" -> po.order.toString, "metadata" -> po.metadata, "tenantId" -> po.tenantId))
+            conceptEdgeGraphViewRepository.upsertNode(po.edgeId, Map("relationType" -> po.relationType, "condition" -> po.condition, "mapping" -> po.mapping, "order" -> po.order, "metadata" -> po.metadata, "tenantId" -> po.tenantId))
             conceptEdgeGraphViewRepository.mergeEdge("FROM", po.edgeId, po.sourceId, po.tenantId)
             conceptEdgeGraphViewRepository.mergeEdge("TARGET", po.edgeId, po.targetId, po.tenantId) // 结构（label/keyName/keySpace 前缀/端点 match）烧在 ④Impl——Strict 悬空停车场
           case _ => () // 非本投影关注事件

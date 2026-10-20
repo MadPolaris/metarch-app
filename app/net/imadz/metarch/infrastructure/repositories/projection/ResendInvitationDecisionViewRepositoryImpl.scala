@@ -122,4 +122,51 @@ class ResendInvitationDecisionViewRepositoryImpl extends ResendInvitationDecisio
     // ==== END MANUAL ====
   }
 
+  /**
+   * @param tenantId  @knowledge 6c5dc350-805b-4b17-b8b7-cb9e3530b395@82b0845dfebf2e56
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ResendInvitationDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `department`, `displayName`, `email`, `jobTitle`, `joinedAt`, `phoneNumber`, `removedAt`, `status`, `tenantId`, `userId`
+                  FROM resendinvitationdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `tenantId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => ResendInvitationDecisionView(
+                department = rs.string("department"),
+                displayName = rs.string("displayName"),
+                email = rs.string("email"),
+                jobTitle = rs.string("jobTitle"),
+                joinedAt = rs.longOpt("joinedAt").map(java.time.Instant.ofEpochMilli),
+                phoneNumber = rs.string("phoneNumber"),
+                removedAt = rs.longOpt("removedAt").map(java.time.Instant.ofEpochMilli),
+                status = rs.string("status"),
+                tenantId = rs.string("tenantId"),
+                userId = rs.string("userId")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 6c5dc350-805b-4b17-b8b7-cb9e3530b395@82b0845dfebf2e56
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM resendinvitationdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

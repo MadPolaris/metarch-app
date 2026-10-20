@@ -19,7 +19,7 @@ object CemEdgeBehaviors extends CemEdgeCommandHelpers {
   def apply: CemEdgeAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
 
   private def defaultBehaviors(state: CemEdgeState): PartialFunction[CemEdgeCommandFamily, Effect[CemEdgeEvent, CemEdgeState]] = {
-    case DeclareEdge(replyTo) =>
+    case _: DeclareEdge =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -30,7 +30,7 @@ object CemEdgeBehaviors extends CemEdgeCommandHelpers {
       <<< AI_PROMPT_END
       */
       ???
-    case PatchEdge(replyTo) =>
+    case _: PatchEdge =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -41,7 +41,7 @@ object CemEdgeBehaviors extends CemEdgeCommandHelpers {
       <<< AI_PROMPT_END
       */
       ???
-    case RetireEdge(replyTo) =>
+    case _: RetireEdge =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

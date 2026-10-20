@@ -4,9 +4,9 @@ package net.imadz.metarch.infrastructure.repositories.projection
 
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.DiscoverContextDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.DiscoverContextDecisionViewTable._
-import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,19 +22,23 @@ class DiscoverContextDecisionViewRepositoryImpl extends DiscoverContextDecisionV
     // ==== BEGIN MANUAL ====
     DB.localTx { implicit session =>
       sql"""INSERT INTO discovercontextdecisionview_table
-            (`contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `subdomainIds`, `tenantId`)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE `description` = VALUES(`description`), `discoveredAt` = VALUES(`discoveredAt`), `discoveredBy` = VALUES(`discoveredBy`), `name` = VALUES(`name`), `subdomainIds` = VALUES(`subdomainIds`), `tenantId` = VALUES(`tenantId`)"""
+            (`contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `tenantId`)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE `description` = VALUES(`description`), `discoveredAt` = VALUES(`discoveredAt`), `discoveredBy` = VALUES(`discoveredBy`), `name` = VALUES(`name`), `tenantId` = VALUES(`tenantId`)"""
         .bind(
               view.contextId,
               view.description,
               (view.discoveredAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
               view.discoveredBy,
               view.name,
-              Json.toJson(view.subdomainIds).toString(),
               view.tenantId
             )
         .update.apply()
+      // 子表（列表结构化·Phase 2 R4）：同事务先删后插
+      sql"DELETE FROM `discovercontextdecisionview_subdomainids_table` WHERE `contextId` = ?".bind(view.contextId).update.apply()
+      view.subdomainIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `discovercontextdecisionview_subdomainids_table` (`contextId`, `idx`, `value`) VALUES (?, ?, ?)".bind(view.contextId, idx, elem.toString).update.apply()
+      }
     }
     // ==== END MANUAL ====
   }
@@ -46,7 +50,7 @@ class DiscoverContextDecisionViewRepositoryImpl extends DiscoverContextDecisionV
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `subdomainIds`, `tenantId`
+            val rows = sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `tenantId`
                   FROM discovercontextdecisionview_table
                   WHERE `contextId` = ?"""
               .bind(contextId)
@@ -56,10 +60,16 @@ class DiscoverContextDecisionViewRepositoryImpl extends DiscoverContextDecisionV
                 discoveredAt = rs.longOpt("discoveredAt").map(java.time.Instant.ofEpochMilli),
                 discoveredBy = rs.string("discoveredBy"),
                 name = rs.string("name"),
-                subdomainIds = Json.parse(rs.string("subdomainIds")).as[List[Id]],
+                subdomainIds = Nil,
                 tenantId = rs.string("tenantId")
               ))
-              .headOption.apply()
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                subdomainIds = sql"SELECT `value` FROM `discovercontextdecisionview_subdomainids_table` WHERE `contextId` = ? ORDER BY `idx`".bind(row.contextId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated.headOption
           }
         }
     // ==== END MANUAL ====
@@ -72,7 +82,7 @@ class DiscoverContextDecisionViewRepositoryImpl extends DiscoverContextDecisionV
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `subdomainIds`, `tenantId`
+            val rows = sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `tenantId`
                   FROM discovercontextdecisionview_table
                   WHERE `tenantId` = ?"""
               .bind(tenantId)
@@ -82,10 +92,16 @@ class DiscoverContextDecisionViewRepositoryImpl extends DiscoverContextDecisionV
                 discoveredAt = rs.longOpt("discoveredAt").map(java.time.Instant.ofEpochMilli),
                 discoveredBy = rs.string("discoveredBy"),
                 name = rs.string("name"),
-                subdomainIds = Json.parse(rs.string("subdomainIds")).as[List[Id]],
+                subdomainIds = Nil,
                 tenantId = rs.string("tenantId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                subdomainIds = sql"SELECT `value` FROM `discovercontextdecisionview_subdomainids_table` WHERE `contextId` = ? ORDER BY `idx`".bind(row.contextId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -95,7 +111,7 @@ class DiscoverContextDecisionViewRepositoryImpl extends DiscoverContextDecisionV
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `subdomainIds`, `tenantId`
+            val rows = sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `tenantId`
                   FROM discovercontextdecisionview_table"""
               .map(rs => DiscoverContextDecisionView(
                 contextId = rs.string("contextId"),
@@ -103,10 +119,98 @@ class DiscoverContextDecisionViewRepositoryImpl extends DiscoverContextDecisionV
                 discoveredAt = rs.longOpt("discoveredAt").map(java.time.Instant.ofEpochMilli),
                 discoveredBy = rs.string("discoveredBy"),
                 name = rs.string("name"),
-                subdomainIds = Json.parse(rs.string("subdomainIds")).as[List[Id]],
+                subdomainIds = Nil,
                 tenantId = rs.string("tenantId")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                subdomainIds = sql"SELECT `value` FROM `discovercontextdecisionview_subdomainids_table` WHERE `contextId` = ? ORDER BY `idx`".bind(row.contextId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 53ffa203-559b-44a4-8213-8a694a3980a4@5539ac4fe9c16f88
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[DiscoverContextDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `tenantId`
+                  FROM discovercontextdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `contextId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => DiscoverContextDecisionView(
+                contextId = rs.string("contextId"),
+                description = rs.string("description"),
+                discoveredAt = rs.longOpt("discoveredAt").map(java.time.Instant.ofEpochMilli),
+                discoveredBy = rs.string("discoveredBy"),
+                name = rs.string("name"),
+                subdomainIds = Nil,
+                tenantId = rs.string("tenantId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                subdomainIds = sql"SELECT `value` FROM `discovercontextdecisionview_subdomainids_table` WHERE `contextId` = ? ORDER BY `idx`".bind(row.contextId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 53ffa203-559b-44a4-8213-8a694a3980a4@5539ac4fe9c16f88
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM discovercontextdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param subdomainId  @knowledge 4a0da02d-7c01-4f96-a62a-832ad94b8480@9b3be1fec81e6ef0
+   */
+  override def findBySubdomainId(subdomainId: String): Future[List[DiscoverContextDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `contextId`, `description`, `discoveredAt`, `discoveredBy`, `name`, `tenantId`
+                  FROM discovercontextdecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `discovercontextdecisionview_subdomainids_table` WHERE `discovercontextdecisionview_subdomainids_table`.`contextId` = `discovercontextdecisionview_table`.`contextId` AND `discovercontextdecisionview_subdomainids_table`.`value` = ?)"""
+              .bind(subdomainId)
+              .map(rs => DiscoverContextDecisionView(
+                contextId = rs.string("contextId"),
+                description = rs.string("description"),
+                discoveredAt = rs.longOpt("discoveredAt").map(java.time.Instant.ofEpochMilli),
+                discoveredBy = rs.string("discoveredBy"),
+                name = rs.string("name"),
+                subdomainIds = Nil,
+                tenantId = rs.string("tenantId")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                subdomainIds = sql"SELECT `value` FROM `discovercontextdecisionview_subdomainids_table` WHERE `contextId` = ? ORDER BY `idx`".bind(row.contextId).map(rs => Id.of(rs.string("value"))).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====

@@ -16,13 +16,13 @@ import scalikejdbc._
 @Singleton
 class CatalogGraphViewRepositoryImpl extends CatalogGraphViewRepository {
 
-  override def upsertNode(key: String, props: Map[String, String]): Unit = {
+  override def upsertNode(key: String, props: Map[String, Any]): Unit = {
     // ==== BEGIN MANUAL ====
     GraphMutationExecutor.apply(GraphMutationExecutor.UpsertNode("Catalog", "catalogId", s"kn:$key", props), GraphMutationExecutor.ExecutionMode.Strict)
     // ==== END MANUAL ====
   }
 
-  override def updateNodeProps(key: String, props: Map[String, String]): Unit = {
+  override def updateNodeProps(key: String, props: Map[String, Any]): Unit = {
     // ==== BEGIN MANUAL ====
     GraphMutationExecutor.apply(GraphMutationExecutor.UpdateNodeProps("Catalog", "catalogId", s"kn:$key", props), GraphMutationExecutor.ExecutionMode.Strict)
     // ==== END MANUAL ====

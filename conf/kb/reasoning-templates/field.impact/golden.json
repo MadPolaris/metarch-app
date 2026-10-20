@@ -1,0 +1,51 @@
+{
+  "comment": "golden 正负用例（EP_Artifacts_Attribution_Closure P4·2026-09-14 基线·图 v3 世界＋kn_push_l2 ③层 rm 面 33 视图/487 字段）。正例①＝orgMemberId 跨面血缘锚：id 面 OrganizationMember 直接归属＋pm/pl 面经 KN_FM_OF 归约 Tenant/OrganizationMember＋TenantMemberRosterUpdated 载荷行携带 derivedBy 下游血缘（fld:st:Tenant:orgMemberIds——writtenBy 派生链反向）；正例②＝orgMemberIds 反向血缘锚（st 面单行·derivesFrom 上游）；正例③＝department 八面锚：②层 st/pm/pl 三面＋③层 rm 面 5 视图（经 KN_RM_OF 归约 owner=OrganizationMember——rm 面补数据的直接验证）；负例＝不存在字段名→空集（负断言）。",
+  "cases": [
+    {
+      "kind": "positive",
+      "note": "orgMemberId 五面锚：id 直接归属＋pm/pl 经 KN_FM_OF＋pl:TenantMemberRosterUpdated 行携带 derivedBy 血缘",
+      "params": { "tenant": "root", "project": "metarch", "field": "orgMemberId" },
+      "expect": {
+        "rows": 5,
+        "contains": [
+          { "fieldId": "fld:id:OrganizationMember:orgMemberId", "face": "id", "container": "OrganizationMember", "owners": "OrganizationMember", "derivesFrom": "", "derivedBy": "" },
+          { "fieldId": "fld:pm:UpdateTenantMemberRoster:orgMemberId", "face": "pm", "container": "UpdateTenantMemberRoster", "owners": "Tenant", "derivesFrom": "", "derivedBy": "" },
+          { "fieldId": "fld:pl:TenantMemberJoined:orgMemberId", "face": "pl", "container": "TenantMemberJoined", "owners": "OrganizationMember", "derivesFrom": "", "derivedBy": "" },
+          { "fieldId": "fld:pl:TenantMemberRosterUpdated:orgMemberId", "face": "pl", "container": "TenantMemberRosterUpdated", "owners": "Tenant", "derivesFrom": "", "derivedBy": "fld:st:Tenant:orgMemberIds" }
+        ]
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "orgMemberIds 反向血缘锚：st 面单行 derivesFrom 指向 orgMemberId 载荷（writtenBy 派生链正向）＋rm 面 OnboardTenantDecisionView（KN_RM_OF 归约 owner=Tenant）",
+      "params": { "tenant": "root", "project": "metarch", "field": "orgMemberIds" },
+      "expect": {
+        "rows": 2,
+        "contains": [
+          { "fieldId": "fld:st:Tenant:orgMemberIds", "face": "st", "container": "Tenant", "owners": "Tenant", "derivesFrom": "fld:pl:TenantMemberRosterUpdated:orgMemberId", "derivedBy": "" },
+          { "fieldId": "fld:rm:OnboardTenantDecisionView:orgMemberIds", "face": "rm", "container": "OnboardTenantDecisionView", "owners": "Tenant", "derivesFrom": "", "derivedBy": "" }
+        ]
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "department 八面锚：②层 st/pm/pl（st↔pl 双向血缘）＋③层 rm 面 5 视图（KN_RM_OF 归约 owner=OrganizationMember——rm 面补数据验证）",
+      "params": { "tenant": "root", "project": "metarch", "field": "department" },
+      "expect": {
+        "rows": 8,
+        "contains": [
+          { "fieldId": "fld:st:OrganizationMember:department", "face": "st", "container": "OrganizationMember", "owners": "OrganizationMember", "derivesFrom": "fld:pl:TenantMemberInvited:department", "derivedBy": "" },
+          { "fieldId": "fld:pl:TenantMemberInvited:department", "face": "pl", "container": "TenantMemberInvited", "owners": "OrganizationMember", "derivesFrom": "", "derivedBy": "fld:st:OrganizationMember:department" },
+          { "fieldId": "fld:rm:AcceptTenantInvitationDecisionView:department", "face": "rm", "container": "AcceptTenantInvitationDecisionView", "owners": "OrganizationMember", "derivesFrom": "", "derivedBy": "" },
+          { "fieldId": "fld:rm:RevokeInvitationDecisionView:department", "face": "rm", "container": "RevokeInvitationDecisionView", "owners": "OrganizationMember", "derivesFrom": "", "derivedBy": "" }
+        ]
+      }
+    },
+    {
+      "kind": "negative",
+      "note": "不存在该字段名 → 必须返回空集（负断言：图中无任何面的同名出现）",
+      "params": { "tenant": "root", "project": "metarch", "field": "NoSuchField_20260914" },
+      "expect": { "rows": 0 }
+    }
+  ]
+}

@@ -83,5 +83,29 @@ trait OpenSessionDecisionViewRepository {
   def findAll(): Future[List[OpenSessionDecisionView]]
   // Logic: 查全部 OpenSessionDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge bab793fe-1572-4915-9e6f-20d616a07c3f@6df99b66511b7441
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[OpenSessionDecisionView]]
+  // Logic: 按 tenantId 分页查 OpenSessionDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge bab793fe-1572-4915-9e6f-20d616a07c3f@6df99b66511b7441
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 OpenSessionDecisionView（分页 total）
+
+  /**
+   * @param participantUserId  @knowledge 05c07576-a9ab-42ef-90f4-6919482a6093@575c7b37696ccb8d
+   */
+  def findByParticipantUserId(participantUserId: String): Future[List[OpenSessionDecisionView]]
+  // Logic: 按 participantUserIds 元素查 OpenSessionDecisionView 列表（子表元素索引）
+
+  /**
+   * @param observerUserId  @knowledge 36a96a17-63b4-415c-ad24-0eb15ed31838@c8e25dab3932e6e4
+   */
+  def findByObserverUserId(observerUserId: String): Future[List[OpenSessionDecisionView]]
+  // Logic: 按 observerUserIds 元素查 OpenSessionDecisionView 列表（子表元素索引）
+
 }
 

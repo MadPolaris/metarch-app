@@ -56,5 +56,23 @@ trait ClassifySubdomainDecisionViewRepository {
   def findAll(): Future[List[ClassifySubdomainDecisionView]]
   // Logic: 查全部 ClassifySubdomainDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 871bbb27-e82e-4e95-a781-ed809fbd05dd@7a7815f4843dcd7f
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[ClassifySubdomainDecisionView]]
+  // Logic: 按 tenantId 分页查 ClassifySubdomainDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 871bbb27-e82e-4e95-a781-ed809fbd05dd@7a7815f4843dcd7f
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 ClassifySubdomainDecisionView（分页 total）
+
+  /**
+   * @param aggregateId  @knowledge 294c545a-1d9f-4e58-bb65-d7a6bdbcd6e0@606ec566ba29d103
+   */
+  def findByAggregateId(aggregateId: String): Future[List[ClassifySubdomainDecisionView]]
+  // Logic: 按 aggregateIds 元素查 ClassifySubdomainDecisionView 列表（子表元素索引）
+
 }
 

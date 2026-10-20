@@ -24,7 +24,7 @@ object SubmitDoRVerdictDecisionViewTable {
  * @param effort 评估投入  @knowledge f72a4e95-95c9-4d82-a848-2cd790067508@1110a93921ea1b49
  * @param evaluatedAt 评估完成时间  @knowledge 802b224d-0d2e-4908-a195-c867ffeed390@92018f1fde3a90ee
  * @param evaluatedBy 评估人/系统  @knowledge 30eb45b1-357e-4fd6-9f55-426b6eb82c20@598ac7b1a75a5d25
- * @param evaluatedScope 评估范围快照  @knowledge 959cd5f1-d038-4a92-9dfe-75cc4c3566e3@250e545be610cbe0
+ * @param evaluatedScope 评估范围快照 [opaque: 裁决保留的原文载荷·不展开]  @knowledge 959cd5f1-d038-4a92-9dfe-75cc4c3566e3@250e545be610cbe0
  * @param evaluatorId 评估者ID  @knowledge 9f7b45e5-ffe3-4f45-9c63-3c8f016de770@926a83bf8921f5d5
  * @param evaluatorRole 评估者角色  @knowledge 2522178c-9e2c-45e9-b793-cdd08fdc5abc@45c60e12d5fa5bcd
  * @param evaluatorType 评估者类型  @knowledge 03250105-d4c9-4df9-aaf2-5946745e656f@a2a5a3a94ca158f6
@@ -32,7 +32,7 @@ object SubmitDoRVerdictDecisionViewTable {
  * @param findings 发现问题清单  @knowledge 63654988-b210-4006-98c8-2138426b84e0@805c9dd828b75a5a
  * @param harnessBrand Harness品牌  @knowledge 8959a7dc-2be4-4e6c-b590-3001183c9720@3917e4ff4955c9b3
  * @param harnessVersion Harness版本  @knowledge c9686dbc-2f59-4403-9678-9c8c2c2ce66f@a472982e642eb36d
- * @param knowledgeSnapshot 知识快照  @knowledge e545ed5f-255d-4dd6-ad7f-21cc1351e882@f3794b8677aa0f8d
+ * @param knowledgeSnapshot 知识快照 [opaque: 裁决保留的原文载荷·不展开]  @knowledge e545ed5f-255d-4dd6-ad7f-21cc1351e882@f3794b8677aa0f8d
  * @param passedAt SubmitDoRVerdictDecisionView.passedAt（EP_View_Column_Writeback 补列·refCodes 对齐）  @knowledge 25ecfe51-ee9a-4941-95de-00738ec97834@62de02fe05a47432
  * @param patchId 补丁编号  @knowledge d9f9cec5-e908-4a26-b45c-46ae322e8a1d@6bf3e4ba338c2d05
  * @param projectId 所属专项  @knowledge b61c91d8-f9d9-4227-8057-25e2ec9ec1bd@1033d845f818b393
@@ -40,7 +40,7 @@ object SubmitDoRVerdictDecisionViewTable {
  * @param recordedAt 记录时间  @knowledge e7a5d131-7757-4f7c-88b7-b18824a97bb9@631175d33f02ff3e
  * @param recordedBy 记录者  @knowledge 2cf65736-9201-48f1-8f08-22f88fae984d@86700814385df372
  * @param result 裁决结果  @knowledge dcde6b15-515e-4cc7-ac4a-31d01f826231@b0ae9524eb162550
- * @param scopeSnapshot 范围快照  @knowledge 0d1f5fea-1c23-439d-974b-537b78a70441@0d4450caafa2abfc
+ * @param scopeSnapshot 范围快照 [opaque: 裁决保留的原文载荷·不展开]  @knowledge 0d1f5fea-1c23-439d-974b-537b78a70441@0d4450caafa2abfc
  * @param severity 严重级  @knowledge ab0efcb3-79b8-4b33-b0f9-7531eb8dd3e0@0962c16b27254ff6
  * @param status SubmitDoRVerdictDecisionView.status（EP_View_Column_Writeback 补列·refCodes 对齐）  @knowledge c90705d4-2983-4536-94b0-a603f926297d@f36d43f03f904837
  * @param summary 汇总摘要  @knowledge 28882ba8-92f2-41b5-8b9e-b830f39c94ea@adbd5a8e4d187da6

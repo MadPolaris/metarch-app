@@ -1,0 +1,12 @@
+{
+  "name": "impact.aggregate",
+  "description": "影响面分析：给定聚合，遍历 聚合←TARGETS←命令−EMITS→事件−FOLDS_IN→下游聚合 的变长影响闭包，返回路径证据（审计级可解释）。",
+  "doc": "kn_kb_storage_plan §6.1 影响面分析（M0 批）",
+  "params": {
+    "tenant":   { "type": "string", "required": true, "desc": "租户键（默认 root）" },
+    "project":  { "type": "string", "required": true, "desc": "项目键（默认 metarch）" },
+    "agg":      { "type": "string", "required": true, "desc": "起始聚合名（如 DoR）" }
+  },
+  "cypher": "query.cypher",
+  "golden": "golden.json"
+}

@@ -19,7 +19,7 @@ object TruthSourceProvenanceBehaviors extends TruthSourceProvenanceCommandHelper
   def apply: TruthSourceProvenanceAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
 
   private def defaultBehaviors(state: TruthSourceProvenanceState): PartialFunction[TruthSourceProvenanceCommandFamily, Effect[TruthSourceProvenanceEvent, TruthSourceProvenanceState]] = {
-    case RecordTruthProvenance(replyTo) =>
+    case _: RecordTruthProvenance =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

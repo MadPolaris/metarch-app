@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 object TruthSourceProvenanceDecisionViewTable {
 /**
- * @param payloadJson payloadJson 字段（TruthSourceProvenanceDecisionView）  @knowledge b6f2f358-99f1-4703-833b-6757b2a91338@5ef80ec978c84260
+ * @param payloadJson payloadJson 字段（TruthSourceProvenanceDecisionView） [opaque: 裁决保留的原文载荷·不展开]  @knowledge b6f2f358-99f1-4703-833b-6757b2a91338@5ef80ec978c84260
  * @param provenanceId provenanceId 字段（TruthSourceProvenanceDecisionView）  @knowledge 94dba4ef-8711-4c39-a63c-9e681c98c605@cb28ce75beca4a58
  * @param recordedAt recordedAt 字段（TruthSourceProvenanceDecisionView）  @knowledge 00ebc0dd-0b12-4357-83b5-de7dee48f9d9@822919394cd8a005
  * @param recordedBy recordedBy 字段（TruthSourceProvenanceDecisionView）  @knowledge fbd644ca-4ae2-4d5f-ba39-3fcc5d04470b@817afd5162dd05e0

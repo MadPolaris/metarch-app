@@ -16,7 +16,7 @@ object FsmDefinitionRuleParams {
   /** EstablishFsmDefinition 规则投影：IR-FSM-CMD-002 / IR-FSM-CMD-003 */
   final case class EstablishFsmDefinitionParams(triggeredBy: String, fsmId: Id, confirmedBy: String)
   /** ProposeFsmDefinition 规则投影：（无命令级规则） */
-  final case class ProposeFsmDefinitionParams(triggeredBy: String, fsmId: Id, aggregateName: String, states: List[FsmStateDef] = List.empty, transitions: List[FsmTransition] = List.empty, createdBy: String)
+  final case class ProposeFsmDefinitionParams(triggeredBy: String, fsmId: Id, tenantId: Id, aggregateName: String, states: List[FsmStateDef] = List.empty, transitions: List[FsmTransition] = List.empty, createdBy: String)
   // @knowledge 33a9a4ef-df86-471f-8f3b-1027f9b6ef0e@8223195f62fe209a
   /** UpdateFsmElements 规则投影：IR-FSM-CMD-001 */
   final case class UpdateFsmElementsParams(triggeredBy: String, fsmId: Id, states: List[FsmStateDef] = List.empty, transitions: List[FsmTransition] = List.empty)

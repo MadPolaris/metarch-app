@@ -96,7 +96,9 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
       // @knowledge f7713f92-cee2-4e0f-b47e-8dbbffc02d90@12e4b45c1028f155
       triggeredBy = d.triggeredBy,
       // @knowledge 838e5d57-6979-4b53-9334-4785c4506b69@eeb1d43b6584f48f
-      timestamp = InstantConv.toProto(d.timestamp)
+      timestamp = InstantConv.toProto(d.timestamp),
+      // @knowledge 752e9ce7-a37c-48f6-8904-259a736fcab4
+      tenantId = IdConv.toProto(d.tenantId)
     )
 
     override def fromProto(p: FsmDefinitionEstablishedPO): FsmDefinitionEstablished = FsmDefinitionEstablished(
@@ -107,7 +109,9 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
       // @knowledge f7713f92-cee2-4e0f-b47e-8dbbffc02d90@12e4b45c1028f155
       triggeredBy = p.triggeredBy,
       // @knowledge 838e5d57-6979-4b53-9334-4785c4506b69@eeb1d43b6584f48f
-      timestamp = InstantConv.fromProto(p.timestamp)
+      timestamp = InstantConv.fromProto(p.timestamp),
+      // @knowledge 752e9ce7-a37c-48f6-8904-259a736fcab4
+      tenantId = IdConv.fromProto(p.tenantId)
     )
   }
 
@@ -116,6 +120,8 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
     override def toProto(d: FsmDefinitionProposed): FsmDefinitionProposedPO = FsmDefinitionProposedPO(
       // @knowledge 2831da86-6241-4948-a074-64d047e86345@5b58c8f5aa885bff
       fsmId = IdConv.toProto(d.fsmId),
+      // @knowledge 5330b11b-42af-42e0-a088-b474755829de
+      tenantId = IdConv.toProto(d.tenantId),
       // @knowledge 70e1367f-e12a-458d-a210-d469ce342307@dfe1ef82445c9fda
       aggregateName = d.aggregateName,
       // @knowledge 4f4a2e55-a491-41f4-acb8-ed22df767a72@86d8fdb44a4a7e5b
@@ -135,6 +141,8 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
     override def fromProto(p: FsmDefinitionProposedPO): FsmDefinitionProposed = FsmDefinitionProposed(
       // @knowledge 2831da86-6241-4948-a074-64d047e86345@5b58c8f5aa885bff
       fsmId = IdConv.fromProto(p.fsmId),
+      // @knowledge 5330b11b-42af-42e0-a088-b474755829de
+      tenantId = IdConv.fromProto(p.tenantId),
       // @knowledge 70e1367f-e12a-458d-a210-d469ce342307@dfe1ef82445c9fda
       aggregateName = p.aggregateName,
       // @knowledge 4f4a2e55-a491-41f4-acb8-ed22df767a72@86d8fdb44a4a7e5b
@@ -164,7 +172,9 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
       // @knowledge f8536f87-97ff-458d-b198-91d7fe1399ac@ed48e51661f46d38
       triggeredBy = d.triggeredBy,
       // @knowledge 1e9fa278-e0f9-4472-ac6f-b03f57ad8ef0@0f0b49078c046e88
-      timestamp = InstantConv.toProto(d.timestamp)
+      timestamp = InstantConv.toProto(d.timestamp),
+      // @knowledge db320c00-8ded-421c-8da5-1522143ee7c2
+      tenantId = IdConv.toProto(d.tenantId)
     )
 
     override def fromProto(p: FsmElementsUpdatedPO): FsmElementsUpdated = FsmElementsUpdated(
@@ -177,7 +187,9 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
       // @knowledge f8536f87-97ff-458d-b198-91d7fe1399ac@ed48e51661f46d38
       triggeredBy = p.triggeredBy,
       // @knowledge 1e9fa278-e0f9-4472-ac6f-b03f57ad8ef0@0f0b49078c046e88
-      timestamp = InstantConv.fromProto(p.timestamp)
+      timestamp = InstantConv.fromProto(p.timestamp),
+      // @knowledge db320c00-8ded-421c-8da5-1522143ee7c2
+      tenantId = IdConv.fromProto(p.tenantId)
     )
   }
 
@@ -186,6 +198,8 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
     override def toProto(d: FsmDefinitionState): FsmDefinitionStatePO = FsmDefinitionStatePO(
       // @knowledge 65884ce2-9d22-48ec-933b-5947271034f5@f9841281b03f5b67
       fsmId = IdConv.toProto(d.fsmId),
+      // @knowledge eca743a7-9f31-4816-bcc3-59f229d540a0
+      tenantId = IdConv.toProto(d.tenantId),
       // @knowledge 374f225e-8aad-4e71-a1f3-7c285633c172@18d364c728f0e9ad
       status = d.status,
       // @knowledge d723e3c0-9e78-42a6-aeed-a1eb637a6d46@c514ee4cc44f60ee
@@ -203,6 +217,8 @@ trait FsmDefinitionProtoConverters extends PrimitiveConverter {
     override def fromProto(p: FsmDefinitionStatePO): FsmDefinitionState = FsmDefinitionState(
       // @knowledge 65884ce2-9d22-48ec-933b-5947271034f5@f9841281b03f5b67
       fsmId = IdConv.fromProto(p.fsmId),
+      // @knowledge eca743a7-9f31-4816-bcc3-59f229d540a0
+      tenantId = IdConv.fromProto(p.tenantId),
       // @knowledge 374f225e-8aad-4e71-a1f3-7c285633c172@18d364c728f0e9ad
       status = p.status,
       // @knowledge d723e3c0-9e78-42a6-aeed-a1eb637a6d46@c514ee4cc44f60ee

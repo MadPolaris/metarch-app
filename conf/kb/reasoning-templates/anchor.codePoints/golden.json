@@ -1,0 +1,65 @@
+{
+  "comment": "golden 正负用例（EP_GenerationTime_Code_Anchors B5·2026-09-23 基线·2026-10-03 用例库 v3 #6 合并批翻新：PauseProjectDecisionView 并入 InitiateProjectDecisionView 后旧基线失效，改锚 InitiateProjectDecisionView.projectId——同构三落点活样本）。正例①＝rm 字段 projectId 的三落点：该元素是**多落点的活样本**——同一 noteId 同时落在 ①DTO 字段（…DecisionViewTable.…projectId）②仓库接口的 findByIdentity 参数 ③实现类同方法参数；单项属性 codeFqn 只会留其中第一个，本模板取全量（这就是它存在的理由）。正例②＝反向（fqn 片段 → 知识元素），答「这个代码点位出自哪条知识」。负例①＝不存在的 noteId → 空集（负断言纪律：不是「代码里没有」，是「本图无此落点」）。负例②＝两参皆缺 → 空集（**有界守卫**：白名单模板不得被误用成全量导出）。",
+  "cases": [
+    {
+      "kind": "positive",
+      "note": "noteId 正向：rm 字段 projectId 的三个代码落点（DTO 字段 ＋ 接口 finder 参数 ＋ 实现类 finder 参数）——单值 codeFqn 只留首个，此处全量",
+      "params": { "tenant": "root", "project": "metarch", "noteId": "ec4dd227-0062-4e2c-bf36-5c662353545f" },
+      "expect": {
+        "rows": 3,
+        "contains": [
+          {
+            "sourceLabel": "KnField",
+            "sourceId": "fld:rm:InitiateProjectDecisionView:projectId",
+            "fqn": "net.imadz.metarch.application.projection.repository.InitiateProjectDecisionViewTable.InitiateProjectDecisionView.projectId",
+            "surface": "scala",
+            "dimension": "本体"
+          },
+          {
+            "sourceLabel": "KnField",
+            "sourceId": "fld:rm:InitiateProjectDecisionView:projectId",
+            "fqn": "net.imadz.metarch.application.projection.repository.InitiateProjectDecisionViewRepository.findByIdentity.projectId",
+            "surface": "scala"
+          },
+          {
+            "sourceLabel": "KnField",
+            "sourceId": "fld:rm:InitiateProjectDecisionView:projectId",
+            "fqn": "net.imadz.metarch.infrastructure.repositories.projection.InitiateProjectDecisionViewRepositoryImpl.findByIdentity.projectId",
+            "file": "app/net/imadz/metarch/infrastructure/repositories/projection/InitiateProjectDecisionViewRepositoryImpl.scala"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "positive",
+      "note": "fqn 反向：一个代码点位（接口 finder 的参数）→ 它出自哪条知识（该 rm 字段便签）",
+      "params": {
+        "tenant": "root",
+        "project": "metarch",
+        "fqn": "InitiateProjectDecisionViewRepository.findByIdentity"
+      },
+      "expect": {
+        "rows": 1,
+        "contains": [
+          {
+            "sourceLabel": "KnField",
+            "sourceId": "fld:rm:InitiateProjectDecisionView:projectId",
+            "noteId": "ec4dd227-0062-4e2c-bf36-5c662353545f"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "negative",
+      "note": "不存在的 noteId → 空集（负断言：本图无此落点）",
+      "params": { "tenant": "root", "project": "metarch", "noteId": "00000000-0000-4000-8000-000000000000" },
+      "expect": { "rows": 0 }
+    },
+    {
+      "kind": "negative",
+      "note": "两参皆缺 → 空集（有界守卫：不得退化成全量导出）",
+      "params": { "tenant": "root", "project": "metarch" },
+      "expect": { "rows": 0 }
+    }
+  ]
+}

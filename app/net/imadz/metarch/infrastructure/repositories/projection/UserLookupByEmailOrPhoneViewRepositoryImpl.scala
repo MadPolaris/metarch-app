@@ -104,4 +104,40 @@ class UserLookupByEmailOrPhoneViewRepositoryImpl extends UserLookupByEmailOrPhon
     // ==== END MANUAL ====
   }
 
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[UserLookupByEmailOrPhoneView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `displayName`, `email`, `phoneNumber`, `status`, `userId`
+                  FROM userlookupbyemailorphoneview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `email`, `phoneNumber` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => UserLookupByEmailOrPhoneView(
+                displayName = rs.string("displayName"),
+                email = rs.string("email"),
+                phoneNumber = rs.string("phoneNumber"),
+                status = rs.string("status"),
+                userId = Id.of(rs.string("userId"))
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM userlookupbyemailorphoneview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

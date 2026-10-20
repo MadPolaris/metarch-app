@@ -1,0 +1,12 @@
+{
+  "name": "chain.fromAggregate",
+  "description": "策略编排因果链：给定聚合，沿 事件−TRIGGERS→策略−EXECUTES→命令−TARGETS→聚合 反查其编排链（含命令 EMITS 事件），输出有序路径（审计级可解释）。",
+  "doc": "kn_kb_storage_plan §6.1 因果链·策略编排（M0 模板 2/3·M2 验收锚＝DoR⇒KnowledgePatch 链）",
+  "params": {
+    "tenant":   { "type": "string", "required": true, "desc": "租户键（默认 root）" },
+    "project":  { "type": "string", "required": true, "desc": "项目键（默认 metarch）" },
+    "agg":      { "type": "string", "required": true, "desc": "目标聚合名（如 Tenant）" }
+  },
+  "cypher": "query.cypher",
+  "golden": "golden.json"
+}

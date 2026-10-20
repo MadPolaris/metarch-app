@@ -4,9 +4,9 @@ package net.imadz.metarch.infrastructure.repositories.projection
 
 import javax.inject.Singleton
 import net.imadz.common.CommonTypes.Id
+import net.imadz.common.Id
 import net.imadz.metarch.application.projection.repository.CaptureNoteDecisionViewRepository
 import net.imadz.metarch.application.projection.repository.CaptureNoteDecisionViewTable._
-import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -22,9 +22,9 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     DB.localTx { implicit session =>
       sql"""INSERT INTO capturenotedecisionview_table
-            (`answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE `answer` = VALUES(`answer`), `answeredAt` = VALUES(`answeredAt`), `answeredBy` = VALUES(`answeredBy`), `author` = VALUES(`author`), `boardId` = VALUES(`boardId`), `collisionName` = VALUES(`collisionName`), `content` = VALUES(`content`), `createdAt` = VALUES(`createdAt`), `createdBy` = VALUES(`createdBy`), `description` = VALUES(`description`), `dismissedAt` = VALUES(`dismissedAt`), `dismissedBy` = VALUES(`dismissedBy`), `externalId` = VALUES(`externalId`), `info` = VALUES(`info`), `knowledgeId` = VALUES(`knowledgeId`), `linkedNoteIds` = VALUES(`linkedNoteIds`), `links` = VALUES(`links`), `name` = VALUES(`name`), `pivotal` = VALUES(`pivotal`), `raisedAt` = VALUES(`raisedAt`), `raisedBy` = VALUES(`raisedBy`), `removedAt` = VALUES(`removedAt`), `sessionId` = VALUES(`sessionId`), `sourceCreatedAt` = VALUES(`sourceCreatedAt`), `stage` = VALUES(`stage`), `tenantId` = VALUES(`tenantId`), `timeline` = VALUES(`timeline`), `type` = VALUES(`type`)"""
+            (`answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE `answer` = VALUES(`answer`), `answeredAt` = VALUES(`answeredAt`), `answeredBy` = VALUES(`answeredBy`), `author` = VALUES(`author`), `boardId` = VALUES(`boardId`), `collisionName` = VALUES(`collisionName`), `content` = VALUES(`content`), `createdAt` = VALUES(`createdAt`), `createdBy` = VALUES(`createdBy`), `description` = VALUES(`description`), `dismissedAt` = VALUES(`dismissedAt`), `dismissedBy` = VALUES(`dismissedBy`), `externalId` = VALUES(`externalId`), `info` = VALUES(`info`), `knowledgeId` = VALUES(`knowledgeId`), `name` = VALUES(`name`), `pivotal` = VALUES(`pivotal`), `raisedAt` = VALUES(`raisedAt`), `raisedBy` = VALUES(`raisedBy`), `removedAt` = VALUES(`removedAt`), `sessionId` = VALUES(`sessionId`), `sourceCreatedAt` = VALUES(`sourceCreatedAt`), `stage` = VALUES(`stage`), `tenantId` = VALUES(`tenantId`), `timeline` = VALUES(`timeline`), `type` = VALUES(`type`)"""
         .bind(
               view.answer,
               (view.answeredAt.map(x => java.lang.Long.valueOf(x.toEpochMilli)).orNull),
@@ -41,8 +41,6 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
               view.externalId,
               view.info,
               view.knowledgeId,
-              Json.toJson(view.linkedNoteIds).toString(),
-              Json.toJson(view.links).toString(),
               view.name,
               view.noteId,
               view.pivotal,
@@ -58,6 +56,15 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
               view.`type`
             )
         .update.apply()
+      // 子表（列表结构化·Phase 2 R4）：同事务先删后插
+      sql"DELETE FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ?".bind(view.noteId, view.questionId).update.apply()
+      view.linkedNoteIds.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `capturenotedecisionview_linkednoteids_table` (`noteId`, `questionId`, `idx`, `value`) VALUES (?, ?, ?, ?)".bind(view.noteId, view.questionId, idx, elem.toString).update.apply()
+      }
+      sql"DELETE FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ?".bind(view.noteId, view.questionId).update.apply()
+      view.links.zipWithIndex.foreach { case (elem, idx) =>
+        sql"INSERT INTO `capturenotedecisionview_links_table` (`noteId`, `questionId`, `idx`, `value`) VALUES (?, ?, ?, ?)".bind(view.noteId, view.questionId, idx, elem).update.apply()
+      }
     }
     // ==== END MANUAL ====
   }
@@ -70,7 +77,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `noteId` = ? AND `questionId` = ?"""
               .bind(noteId, questionId)
@@ -90,8 +97,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -106,7 +113,14 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 timeline = rs.string("timeline"),
                 `type` = rs.string("type")
               ))
-              .headOption.apply()
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated.headOption
           }
         }
     // ==== END MANUAL ====
@@ -119,7 +133,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `boardId` = ?"""
               .bind(boardId)
@@ -139,8 +153,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -156,6 +170,13 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -168,7 +189,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `externalId` = ?"""
               .bind(externalId)
@@ -188,8 +209,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -205,6 +226,13 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -217,7 +245,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `knowledgeId` = ?"""
               .bind(knowledgeId)
@@ -237,8 +265,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -254,6 +282,13 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -266,7 +301,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `noteId` = ?"""
               .bind(noteId)
@@ -286,8 +321,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -303,6 +338,13 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -315,7 +357,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `questionId` = ?"""
               .bind(questionId)
@@ -335,8 +377,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -352,6 +394,13 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -364,7 +413,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `sessionId` = ?"""
               .bind(sessionId)
@@ -384,8 +433,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -401,6 +450,13 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -413,7 +469,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table
                   WHERE `tenantId` = ?"""
               .bind(tenantId)
@@ -433,8 +489,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -450,6 +506,13 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====
@@ -459,7 +522,7 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
     // ==== BEGIN MANUAL ====
     Future {
           DB readOnly { implicit session =>
-            sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `linkedNoteIds`, `links`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
                   FROM capturenotedecisionview_table"""
               .map(rs => CaptureNoteDecisionView(
                 answer = rs.string("answer"),
@@ -477,8 +540,8 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 externalId = rs.string("externalId"),
                 info = rs.string("info"),
                 knowledgeId = rs.string("knowledgeId"),
-                linkedNoteIds = Json.parse(rs.string("linkedNoteIds")).as[List[Id]],
-                links = Json.parse(rs.string("links")).as[List[String]],
+                linkedNoteIds = Nil,
+                links = Nil,
                 name = rs.string("name"),
                 noteId = rs.string("noteId"),
                 pivotal = rs.boolean("pivotal"),
@@ -494,6 +557,143 @@ class CaptureNoteDecisionViewRepositoryImpl extends CaptureNoteDecisionViewRepos
                 `type` = rs.string("type")
               ))
               .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 3ac63981-d1ae-42f7-b6be-f520da01e1e0@7857c48ca920b3c9
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[CaptureNoteDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+                  FROM capturenotedecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `noteId`, `questionId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => CaptureNoteDecisionView(
+                answer = rs.string("answer"),
+                answeredAt = rs.longOpt("answeredAt").map(java.time.Instant.ofEpochMilli),
+                answeredBy = rs.string("answeredBy"),
+                author = rs.string("author"),
+                boardId = rs.string("boardId"),
+                collisionName = rs.string("collisionName"),
+                content = rs.string("content"),
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                description = rs.string("description"),
+                dismissedAt = rs.longOpt("dismissedAt").map(java.time.Instant.ofEpochMilli),
+                dismissedBy = rs.string("dismissedBy"),
+                externalId = rs.string("externalId"),
+                info = rs.string("info"),
+                knowledgeId = rs.string("knowledgeId"),
+                linkedNoteIds = Nil,
+                links = Nil,
+                name = rs.string("name"),
+                noteId = rs.string("noteId"),
+                pivotal = rs.boolean("pivotal"),
+                questionId = rs.string("questionId"),
+                raisedAt = rs.longOpt("raisedAt").map(java.time.Instant.ofEpochMilli),
+                raisedBy = rs.string("raisedBy"),
+                removedAt = rs.longOpt("removedAt").map(java.time.Instant.ofEpochMilli),
+                sessionId = rs.string("sessionId"),
+                sourceCreatedAt = rs.string("sourceCreatedAt"),
+                stage = rs.string("stage"),
+                tenantId = rs.string("tenantId"),
+                timeline = rs.string("timeline"),
+                `type` = rs.string("type")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 3ac63981-d1ae-42f7-b6be-f520da01e1e0@7857c48ca920b3c9
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM capturenotedecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param linkedNoteId  @knowledge 7ba2e18c-d2e6-4fc3-8b80-e1fce9cd0d84@53b4a5ecd8b6709d
+   */
+  override def findByLinkedNoteId(linkedNoteId: String): Future[List[CaptureNoteDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            val rows = sql"""SELECT `answer`, `answeredAt`, `answeredBy`, `author`, `boardId`, `collisionName`, `content`, `createdAt`, `createdBy`, `description`, `dismissedAt`, `dismissedBy`, `externalId`, `info`, `knowledgeId`, `name`, `noteId`, `pivotal`, `questionId`, `raisedAt`, `raisedBy`, `removedAt`, `sessionId`, `sourceCreatedAt`, `stage`, `tenantId`, `timeline`, `type`
+                  FROM capturenotedecisionview_table
+                  WHERE EXISTS (SELECT 1 FROM `capturenotedecisionview_linkednoteids_table` WHERE `capturenotedecisionview_linkednoteids_table`.`noteId` = `capturenotedecisionview_table`.`noteId` AND `capturenotedecisionview_linkednoteids_table`.`questionId` = `capturenotedecisionview_table`.`questionId` AND `capturenotedecisionview_linkednoteids_table`.`value` = ?)"""
+              .bind(linkedNoteId)
+              .map(rs => CaptureNoteDecisionView(
+                answer = rs.string("answer"),
+                answeredAt = rs.longOpt("answeredAt").map(java.time.Instant.ofEpochMilli),
+                answeredBy = rs.string("answeredBy"),
+                author = rs.string("author"),
+                boardId = rs.string("boardId"),
+                collisionName = rs.string("collisionName"),
+                content = rs.string("content"),
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli),
+                createdBy = rs.string("createdBy"),
+                description = rs.string("description"),
+                dismissedAt = rs.longOpt("dismissedAt").map(java.time.Instant.ofEpochMilli),
+                dismissedBy = rs.string("dismissedBy"),
+                externalId = rs.string("externalId"),
+                info = rs.string("info"),
+                knowledgeId = rs.string("knowledgeId"),
+                linkedNoteIds = Nil,
+                links = Nil,
+                name = rs.string("name"),
+                noteId = rs.string("noteId"),
+                pivotal = rs.boolean("pivotal"),
+                questionId = rs.string("questionId"),
+                raisedAt = rs.longOpt("raisedAt").map(java.time.Instant.ofEpochMilli),
+                raisedBy = rs.string("raisedBy"),
+                removedAt = rs.longOpt("removedAt").map(java.time.Instant.ofEpochMilli),
+                sessionId = rs.string("sessionId"),
+                sourceCreatedAt = rs.string("sourceCreatedAt"),
+                stage = rs.string("stage"),
+                tenantId = rs.string("tenantId"),
+                timeline = rs.string("timeline"),
+                `type` = rs.string("type")
+              ))
+              .list.apply()
+            val hydrated = rows.map { row =>
+              row.copy(
+                linkedNoteIds = sql"SELECT `value` FROM `capturenotedecisionview_linkednoteids_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => Id.of(rs.string("value"))).list.apply(),
+                links = sql"SELECT `value` FROM `capturenotedecisionview_links_table` WHERE `noteId` = ? AND `questionId` = ? ORDER BY `idx`".bind(row.noteId, row.questionId).map(rs => rs.string("value")).list.apply()
+              )
+            }
+            hydrated
           }
         }
     // ==== END MANUAL ====

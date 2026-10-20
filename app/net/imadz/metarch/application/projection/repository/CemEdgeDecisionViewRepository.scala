@@ -26,7 +26,7 @@ object CemEdgeDecisionViewTable {
  * @param status status 字段（CemEdgeDecisionView）  @knowledge ca184a65-2a40-4f04-85a9-68554b0e935c@06f6a2e7b0e8e7a2
  * @param tenantId tenantId 字段（CemEdgeDecisionView）  @knowledge a05e2091-e700-4e85-83ec-db5c3b572cd7@5366e06610279108
  */
-case class CemEdgeDecisionView(aggregateName: String, commandName: String, confidence: String, declaredAt: Option[Instant], declaredBy: String, edgeId: Id, eventName: String, retiredAt: Option[Instant], retiredReason: String, sources: String, status: String, tenantId: String) {
+case class CemEdgeDecisionView(aggregateName: String, commandName: String, confidence: String, declaredAt: Option[Instant], declaredBy: String, edgeId: Id, eventName: String, retiredAt: Option[Instant], retiredReason: String, sources: List[String], status: String, tenantId: String) {
 
 }
 }

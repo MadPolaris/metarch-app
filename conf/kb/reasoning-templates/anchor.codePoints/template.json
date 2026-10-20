@@ -1,0 +1,13 @@
+{
+  "name": "anchor.codePoints",
+  "description": "知识元素 ↔ 代码落点问答（双向）：给定便签 id（noteId）返回该元素的**全部**代码落点（带面 surface 与维度 dimension＝本体/派生）；给定代码全限定名片段（fqn）反向查「这个代码点位出自哪条知识」。为什么需要它：单值属性 `KnField.codeFqn` 只能留**一个**落点（其余仅剩计数）——实测 256 个知识元素有 >1 个落点、此前静默丢 404 个；B5 起落点升为一等节点 KnCodePoint，由 KN_ANCHORED_AT 从 KnField/KnValueObject/KnConcept 指过来。空结果＝「本图无该落点」（负断言纪律·不是「代码里没有」）。",
+  "doc": "EP_GenerationTime_Code_Anchors B5·决策 4（2026-09-23）。数据依赖：kn_push_code_anchors 落 KnCodePoint ＋ KN_ANCHORED_AT（边带 dimension/surface）＋ KN_PRODUCED_IN 溯源边。该边登记于 relation_vocabulary.graphEdgeClass.artifactDerived（生成物派生·非真源·不入关系表投影）。形态② 行为层锚落 KnConcept 侧，字段/参数锚落 KnField/KnValueObject 侧——见 kn_push_code_anchors 内判据。",
+  "params": {
+    "tenant":  { "type": "string", "required": true,  "default": "root",    "desc": "租户键（默认 root）" },
+    "project": { "type": "string", "required": true,  "default": "metarch", "desc": "项目键（默认 metarch）" },
+    "noteId":  { "type": "string", "required": false, "default": "",        "desc": "知识元素便签 id（UUID·正向：元素 → 全部落点）" },
+    "fqn":     { "type": "string", "required": false, "default": "",        "desc": "代码全限定名片段（反向：代码点位 → 知识元素；可与 noteId 并用收窄）" }
+  },
+  "cypher": "query.cypher",
+  "golden": "golden.json"
+}

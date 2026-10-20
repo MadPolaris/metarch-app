@@ -192,4 +192,53 @@ class PauseProjectDecisionViewRepositoryImpl extends PauseProjectDecisionViewRep
     // ==== END MANUAL ====
   }
 
+  /**
+   * @param tenantId  @knowledge 7094f122-ae90-4fe3-99a2-d1910a7a8e30@2896276175b616f9
+   */
+  override def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[PauseProjectDecisionView]] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT `cancelledAt`, `completedAt`, `createdAt`, `createdBy`, `description`, `name`, `ownerUserId`, `pausedAt`, `projectId`, `startedAt`, `tenantId`, `workgroupId`
+                  FROM pauseprojectdecisionview_table
+                  WHERE `tenantId` = ?
+                  ORDER BY `projectId` LIMIT ? OFFSET ?"""
+              .bind(tenantId, limit, offset)
+              .map(rs => PauseProjectDecisionView(
+                cancelledAt = rs.longOpt("cancelledAt").map(java.time.Instant.ofEpochMilli).orNull,
+                completedAt = rs.longOpt("completedAt").map(java.time.Instant.ofEpochMilli).orNull,
+                createdAt = rs.longOpt("createdAt").map(java.time.Instant.ofEpochMilli).orNull,
+                createdBy = rs.string("createdBy"),
+                description = rs.string("description"),
+                name = rs.string("name"),
+                ownerUserId = rs.string("ownerUserId"),
+                pausedAt = rs.longOpt("pausedAt").map(java.time.Instant.ofEpochMilli).orNull,
+                projectId = rs.string("projectId"),
+                startedAt = rs.longOpt("startedAt").map(java.time.Instant.ofEpochMilli).orNull,
+                tenantId = rs.string("tenantId"),
+                workgroupId = rs.string("workgroupId")
+              ))
+              .list.apply()
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
+  /**
+   * @param tenantId  @knowledge 7094f122-ae90-4fe3-99a2-d1910a7a8e30@2896276175b616f9
+   */
+  override def countByTenant(tenantId: String): Future[Long] = {
+    // ==== BEGIN MANUAL ====
+    Future {
+          DB readOnly { implicit session =>
+            sql"""SELECT COUNT(*) FROM pauseprojectdecisionview_table WHERE `tenantId` = ?"""
+              .bind(tenantId)
+              .map(rs => rs.long(1))
+              .single.apply()
+              .getOrElse(0L)
+          }
+        }
+    // ==== END MANUAL ====
+  }
+
 }

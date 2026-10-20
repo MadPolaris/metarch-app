@@ -19,7 +19,7 @@ object ReadModelDefinitionBehaviors extends ReadModelDefinitionCommandHelpers {
   def apply: ReadModelDefinitionAggregateCommandHandler = (state, command) => defaultBehaviors(state).apply(command)
 
   private def defaultBehaviors(state: ReadModelDefinitionState): PartialFunction[ReadModelDefinitionCommandFamily, Effect[ReadModelDefinitionEvent, ReadModelDefinitionState]] = {
-    case DeclareReadModel(replyTo) =>
+    case _: DeclareReadModel =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -30,7 +30,7 @@ object ReadModelDefinitionBehaviors extends ReadModelDefinitionCommandHelpers {
       <<< AI_PROMPT_END
       */
       ???
-    case PatchReadModelField(replyTo) =>
+    case _: PatchReadModelField =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler
@@ -41,7 +41,7 @@ object ReadModelDefinitionBehaviors extends ReadModelDefinitionCommandHelpers {
       <<< AI_PROMPT_END
       */
       ???
-    case RemoveReadModel(replyTo) =>
+    case _: RemoveReadModel =>
       /*
       >>> AI_PROMPT_START
       Context: Command Handler

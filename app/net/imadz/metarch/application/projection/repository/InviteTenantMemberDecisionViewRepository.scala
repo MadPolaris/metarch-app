@@ -63,5 +63,17 @@ trait InviteTenantMemberDecisionViewRepository {
   def findAll(): Future[List[InviteTenantMemberDecisionView]]
   // Logic: 查全部 InviteTenantMemberDecisionView 行
 
+  /**
+   * @param tenantId  @knowledge 310aa63d-49ff-4ffc-8204-8c84ac2d352c@eea21de3d0088de7
+   */
+  def findByTenantPaged(tenantId: String, limit: Int, offset: Long): Future[List[InviteTenantMemberDecisionView]]
+  // Logic: 按 tenantId 分页查 InviteTenantMemberDecisionView（SQL 级租户下推·limit/offset）
+
+  /**
+   * @param tenantId  @knowledge 310aa63d-49ff-4ffc-8204-8c84ac2d352c@eea21de3d0088de7
+   */
+  def countByTenant(tenantId: String): Future[Long]
+  // Logic: 按 tenantId 计数 InviteTenantMemberDecisionView（分页 total）
+
 }
 
